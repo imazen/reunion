@@ -1,0 +1,43 @@
+Layout: false
+
+doctype html
+html lang="en"
+  head
+    meta charset="utf-8"
+
+    title
+      | Reunion
+
+    meta name="viewport" content="width=device-width, initial-scale=1.0"
+
+    link href="/css/bootstrap.css" rel="stylesheet"
+    link href="/css/bootstrap-theme.css" rel="stylesheet"
+    link href="/css/reunion.css" rel="stylesheet"
+
+  body
+    /Header
+    .navbar.navbar.navbar-static-top role="banner" id="top"
+      .container
+        .navbar-header
+          button class="navbar-toggle" data-toggle="collapse" type="button" data-target=".bs-nav-collapse"
+            span class="icon-bar"
+            span class="icon-bar"
+            span class="icon-bar"
+          
+          a class="navbar-brand" href="#"
+            = "Reunion"
+          .navbar-collapse.collapse.bs-navbar-collapse role="navigation"
+            ul.nav.navbar-nav
+              li 
+                a href="/" Home
+              li 
+                a href="/search" Search
+
+    .container
+      /Inner layout or page renders here
+      == yield
+
+
+    script src="/js/jquery-2.1.0.min.js"
+
+    script src="/js/bootstrap.min.js"

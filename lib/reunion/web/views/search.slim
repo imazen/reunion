@@ -1,0 +1,10 @@
+
+h3 Search
+
+input type="text" id="query" value=(query || "")
+
+- if results
+  ul
+    - results.each do |r|
+      li
+        == r.inspect

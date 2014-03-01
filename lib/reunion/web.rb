@@ -1,0 +1,1 @@
+require "reunion/web/app"
