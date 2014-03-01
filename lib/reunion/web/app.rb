@@ -7,15 +7,21 @@ module Reunion
       set :root, File.dirname(__FILE__)
 
 
-      def get_all_transactions
+ 
+
+      def get_transfer_pairs
+        get_cached_books.transfer_pairs
+      end
+
+      def get_books
         b = Reunion::ImazenBooks.new
         b.configure
         b.load
         b.rules
-        b.all_transactions
-      end 
-      def get_cached_transactions
-        @@all ||= get_all_transactions
+        b
+      end
+      def get_cached_books
+        @@books ||= get_books
       end
 
 
@@ -24,7 +30,7 @@ module Reunion
       end
 
       get '/search/:query' do |query|
-        get_cached_transactions.select{|t| t.description.downcase.include?(query.downcase)}
+        get_cached_books.all_transactions.select{|t| t.description.downcase.include?(query.downcase)}
 
         slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
       end
@@ -34,11 +40,11 @@ module Reunion
       end
 
       get '/expense/:query' do |query|
-        list = get_cached_transactions.map{|t| t[:tax_expense]}.uniq
+        list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
         query = query.to_s.downcase.to_sym
 
 
-        results = get_cached_transactions.select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
+        results = get_cached_books.all_transactions.select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
         
         slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list}}
       end
