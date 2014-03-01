@@ -75,7 +75,7 @@ module Reunion
     end
 
     get '/search/:query' do |query|
-      filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
+      results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
 
       slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
     end

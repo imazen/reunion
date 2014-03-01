@@ -161,6 +161,48 @@ module Reunion
     end 
   end
 
+  class StrictTsv
+    attr_reader :contents
+    def initialize(contents)
+      @contents = contents
+    end
+     
+    def parse
+      headers = contents.lines.first.strip.split("\t")
+      contents.lines.to_a[1..-1].map do |line|
+        Hash[headers.zip(line.rstrip.split("\t"))]
+      end
+    end
+  
+  end
+
+  class TsvJsParser < CsvParser
+    def parse(text)
+      a = StrictTsv.new(text.rstrip).parse
+
+      all = a.map do |r|
+        row = {}.merge(r)
+        row[:date] = Date.parse(r[:date]) if r[:date]
+        row[:amount] = parse_amount(r[:amount]) if r[:amount]
+        row[:balance_after] = parse_amount(r[:balance_after]) if r[:balance_after]
+        row[:balance] = parse_amount(r[:balance]) if r[:balance]
+        json = JSON.parse(r[:set]) if r[:set] && !r[:set].strip.empty?
+        row = row.merge(json) if json
+        row
+      end 
+
+
+      statements = all.select { |r| r[:amount].nil? && !r[:balance].nil? }
+      transactions = all.select { |r| !r[:amount].nil? }
+
+
+      p a if statements.length + transactions.length == 0
+
+      return {transactions:transactions, statements: statements}
+
+    end 
+  end
+
   class PayPalBalanceAffectingPaymentsTsvParser < CsvParser
     def parse(text)
       # Paypal uses WINDOWS-1252 - or chinese, japanese, korean, or russian, depeding upon what you've set here:
