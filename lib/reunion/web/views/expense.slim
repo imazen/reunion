@@ -1,0 +1,37 @@
+
+h3
+  | Expenses: 
+  = query.downcase
+
+
+ul.nav.nav-pills
+  li
+    a href="/expense/none"
+      | Untagged
+  - tax_expense_names.each do |name|
+    li
+      a href="/expense/#{name}" 
+        == name
+
+
+- if defined?(results) && results
+  table.table.table-condensed
+    tr
+      th
+       = "Summary of #{results.count} expenses:"
+      th
+        = results.map{|t|t.amount}.inject(1, &:+).to_usd
+      th
+        = results.first[:tax_expense]
+
+    - results.each do |r|
+      tr
+        td
+          = r.date_str
+        td
+          = r.amount_str
+        td
+          = r.description
+        td
+          = r[:tax_expense]
+
