@@ -1,0 +1,42 @@
+h3
+  | Paired transfers: 
+ 
+
+ul.nav.nav-pills
+  li
+    a href="/transfers/unmatched"
+      | Unmatched
+  li
+    a href="/transfers/paired"
+      | paired
+
+- if defined?(results) && results
+  table.table.table-condensed
+    tr
+      th
+       = "Summary of #{results.count} Transfers:"
+
+      th
+      
+      th
+    - results.each do |pair|
+      tr
+        th
+          = pair.first.date_str
+        th
+          = pair.first.amount_str
+        th
+          = pair.first.description
+        th
+          = pair.first[:account_sym]
+      tr
+        td
+          = pair.last.date_str
+        td
+          = pair.last.amount_str
+        td
+          = pair.last.description
+        td
+          = pair.last[:account_sym]
+
+

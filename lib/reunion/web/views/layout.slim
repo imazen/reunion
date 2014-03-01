@@ -34,8 +34,13 @@ html lang="en"
                 a href="/search" Search
               li
                 a href="/expense" Expenses
+              li
+                a href="/transfers" Transfers
 
     .container
+
+      p
+        == "Displaying transactions between #{get_date_from} to #{get_date_to}"
       /Inner layout or page renders here
       == yield
 
