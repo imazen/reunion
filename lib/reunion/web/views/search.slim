@@ -1,10 +1,15 @@
 
 h3 Search
 
-input type="text" id="query" value=(query || "")
+input type="text" id="query" value=(defined?(query) ? query : "")
 
-- if results
-  ul
+- if defined?(results) && results
+  table.table.table-condensed
     - results.each do |r|
-      li
-        == r.inspect
+      tr
+        td
+          = r.date_str
+        td
+          = r.amount_str
+        td
+          = r.description

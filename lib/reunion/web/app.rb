@@ -7,7 +7,7 @@ module Reunion
       set :root, File.dirname(__FILE__)
 
       get '/search' do
-        slim :search, layout: :layout
+        slim :search, {layout: :layout, :locals => {:query => ""}}
       end
 
       get '/search/:query' do |query|
