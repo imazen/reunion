@@ -100,8 +100,10 @@ class Reunion::Export
              {name:"Amount", format: "%.2f"},
              {name:"Description"},
              {name:"Balance After", key: [:balance_after, :balance], format: "%.2f"},
-             {name:"Tags", fn: lambda {|t| get_tags(t).map{|f|f.to_s}.join(",")}},
-             {name:"Vendor", key: [:vendor]}
+             {name:"Tax Expense", key: [:tax_expense]},
+             {name:"Vendor", key: [:vendor]},
+             {name:"Tags", fn: lambda {|t| get_tags(t).map{|f|f.to_s}.join(",")}}
+             
              ],(transactions + statements).stable_sort_by { |t| t[:date].strftime("%Y-%m-%d") })
 
     File.open(file, 'w') { |f| f.write(output) }
