@@ -168,7 +168,9 @@ module Reunion
     end
      
     def parse
-      headers = contents.lines.first.strip.split("\t")
+      headers = contents.lines.first.downcase.strip.split("\t").map{|h|
+        h.strip.gsub(/\s+/, "_").gsub(/\W+/, "").to_sym
+      }
       contents.lines.to_a[1..-1].map do |line|
         Hash[headers.zip(line.rstrip.split("\t"))]
       end
@@ -178,7 +180,7 @@ module Reunion
 
   class TsvJsParser < CsvParser
     def parse(text)
-      a = StrictTsv.new(text.rstrip).parse
+      a = StrictTsv.new(text.encode('UTF-8').rstrip).parse
 
       all = a.map do |r|
         row = {}.merge(r)
