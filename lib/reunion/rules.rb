@@ -334,7 +334,7 @@ module Reunion
     def run(transactions)
       current_set = transactions
       next_set = []
-      max_iterations = 5
+      max_iterations = 3
       max_iterations.times do |i|
         break if current_set.empty?
         next_set = current_set.select{|t| modify_txn(t)}
