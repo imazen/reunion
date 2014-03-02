@@ -72,8 +72,8 @@ module Reunion
   class CsvParser < Parser
     def csv_options
       {headers: :first_row, 
-      header_converters: lambda { | h| 
-        h.encode('UTF-8').downcase.strip.gsub(/\s+/, "_").gsub(/\W+/, "").to_sym}
+      header_converters: lambda { |h| 
+        h.nil? ? nil : h.encode('UTF-8').downcase.strip.gsub(/\s+/, "_").gsub(/\W+/, "").to_sym}
       }
     end 
   end
@@ -160,6 +160,34 @@ module Reunion
 
     end 
   end
+
+  class CsvJsParser < CsvParser
+    def parse(text)
+      a = CSV.parse(text.rstrip, csv_options).select{|r|true}
+
+      all = a.map do |r|
+        row = {}.merge(r.to_hash)
+        #p row
+        row[:date] = Date.parse(r[:date]) if r[:date]
+        row[:amount] = parse_amount(r[:amount]) if r[:amount]
+        row[:balance_after] = parse_amount(r[:balance_after]) if r[:balance_after]
+        row[:balance] = parse_amount(r[:balance]) if r[:balance]
+        json = JSON.parse(r[:set]) if r[:set] && !r[:set].strip.empty?
+        row = row.merge(json) if json
+        row
+      end 
+
+      statements = all.select { |r| r[:amount].nil? && !r[:balance].nil? }
+      transactions = all.select { |r| !r[:amount].nil? }
+
+
+      p a if statements.length + transactions.length == 0
+
+      return {transactions:transactions, statements: statements}
+
+    end 
+  end
+
 
   class StrictTsv
     attr_reader :contents
