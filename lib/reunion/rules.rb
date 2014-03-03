@@ -195,6 +195,18 @@ module Reunion
       
     end 
 
+    def filters
+      @filters
+    end 
+
+    def actions
+      @actions
+    end 
+
+    def disabled?
+      @disabled
+    end 
+
     def evaluate_filter(f, txn, vendors, clients)
       result = evaluate_filter_noun(f,txn,vendors,clients)
       return f[:verb] == :exclude ? !result : result
@@ -311,14 +323,24 @@ module Reunion
     def matches?(txn, vendors,clients)
       return false if disabled
       #byebug
-      @filters.all?{|f| evaluate_filter(f,txn,vendors,clients)}
-    end 
+      matches = @filters.all?{|f| evaluate_filter(f,txn,vendors,clients)}
+      @matched_transactions ||= []
+      @matched_transactions << txn if matches
+      matches
+    end
+
+    attr_accessor :matched_transactions, :modified_transactions, :changed_transactions
+
     def modify(txn)
       return false if disabled
+      @modified_transactions ||= []
+      @changed_transactions ||= []
+      @modified_transactions << txn
       actual_change = false
       @actions.each do |action|
         actual_change = true if apply_action(action,txn)
-      end 
+      end
+      @changed_transactions << txn if actual_change
       actual_change
     end 
 
@@ -326,9 +348,9 @@ module Reunion
   class RuleEngine
     attr_accessor :rules, :vendors, :clients
     def initialize(rules, vendors, clients)
-      self.rules = rules.rules.map{|r| Rule.new(r)}
-      self.vendors = vendors
-      self.clients = clients
+      @rules = rules.rules.map{|r| Rule.new(r)}
+      @vendors = vendors
+      @clients = clients
     end
 
     def run(transactions)
