@@ -1,0 +1,35 @@
+
+h3 Show  rules
+
+
+table.table.table-condensed
+  tr
+    th
+      | Match count
+    th
+      | When
+    th
+      | Change count
+    th
+      | Change
+  - rules.rules.sort_by{|r|r.matched_transactions.count}.each do |r|
+    tr
+      td
+        = r.matched_transactions.to_a.count
+      td 
+        - r.filters.each do |f|
+          - if r.disabled
+            | [disabled]
+          | When: 
+          = f[:noun]
+          |   
+          = f[:arguments]
+      td
+        = r.changed_transactions.to_a.count
+      td
+        - r.actions.each do |a|
+          | Set: 
+          = a[:noun]
+          |  to  
+          = a[:arguments]
+      

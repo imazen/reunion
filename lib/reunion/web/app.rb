@@ -68,35 +68,41 @@ module Reunion
       end
 
 
+      get '/' do
+        slim :index, {:layout => :layout, :locals =>{}}
+      end 
+
+      get '/search' do
+        slim :search, {layout: :layout, :locals => {:query => ""}}
+      end
+
+      get '/search/:query' do |query|
+        results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
+
+        slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
+      end
+
+      get '/expense/?' do
+        list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
+        slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list}}
+      end
+
+      get '/expense/:query' do |query|
+        list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
+        query = query.to_s.downcase.to_sym
 
 
-    get '/search' do
-      slim :search, {layout: :layout, :locals => {:query => ""}}
+        results = filter_transactions(get_cached_books.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
+
+        slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list}}
+      end
+
+      get '/rules' do
+        rules = get_cached_books.rule_engine
+        slim :rules, {:layout => :layout, :locals => {:rules => rules}}
+      end 
+
+
     end
-
-    get '/search/:query' do |query|
-      results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
-
-      slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
-    end
-
-    get '/expense/?' do
-      list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
-      slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list}}
-    end
-
-    get '/expense/:query' do |query|
-      list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
-      query = query.to_s.downcase.to_sym
-
-
-      results = filter_transactions(get_cached_books.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
-
-      slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list}}
-    end
-
-
-
   end
-end
 end
