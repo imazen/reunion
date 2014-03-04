@@ -75,6 +75,10 @@ module Reunion
     it 'should evaluate regexen anchored' do
       assert Rule.new([]).is_match [/\Aexa?c?t?\Z/i], ["EXACT"], nil
     end 
+
+    it 'should evaluate lambdas' do
+      assert Rule.new([]).is_match [->(t){t.start_with?("E")}], ["EXACT"], nil
+    end 
   end 
   describe 'default vendors' do
     it 'should parse' do 
