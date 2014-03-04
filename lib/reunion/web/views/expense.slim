@@ -30,6 +30,8 @@ ul.nav.nav-pills
         = credits.inject(0, &:+).to_usd  + " (#{credits.count.to_s})"
       th
         = results.first[:tax_expense]
+      th
+        | Account Name
 
     - results.each do |r|
       tr
@@ -43,6 +45,10 @@ ul.nav.nav-pills
           = r.description
         td
           = r[:tax_expense]
+        td
+          = r[:account_sym]
+          |   
+          = r[:currency]
 
 - deductible_categories = [:advertising, :contract_labor, :insurance, :meals, :misc, :office, :property_rent, :section179, :supplies, :travel, :utilities, :home_office]
 
