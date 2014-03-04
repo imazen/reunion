@@ -21,6 +21,7 @@ module Reunion
       def filter_transactions(txns)
         txns.select do |t| 
           keep = true
+          keep = false if t[:transfer_pair]
           keep =  false if get_date_from && t.date < get_date_from
           keep =  false if get_date_to && t.date > get_date_to
           keep
