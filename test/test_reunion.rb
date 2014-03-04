@@ -45,7 +45,7 @@ module Reunion
 
     it 'should evaluate regexen' do
       r = Rules.new
-      r.match(/exa?c?t?/i).tag(:found)
+      r.match([/exa?c?t?/i, /ex/i]).tag(:found)
       txns = [Transaction.new({:description => "EXaCT"})]
       RuleEngine.new(r).run(txns)
       assert_equal [:found], txns.first.tags
@@ -68,6 +68,12 @@ module Reunion
 
     it 'should evaluate regexen' do
       assert Rule.new([]).is_match [/exa?c?t?/i], ["EXACT"], nil
+    end 
+    it 'should evaluate regexen arrays' do
+      assert Rule.new([]).is_match [/^E/i,/exa?c?t?/i], ["EXACT"], nil
+    end 
+    it 'should evaluate regexen anchored' do
+      assert Rule.new([]).is_match [/\Aexa?c?t?\Z/i], ["EXACT"], nil
     end 
   end 
   describe 'default vendors' do
