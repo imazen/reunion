@@ -13,6 +13,8 @@ module Reunion
           t[:date] = t[:date].is_a?(String) ? Date.parse(t[:date]) : t[:date]
         rescue ArgumentError 
         end 
+        t[:tax_expense] = nil if t[:tax_expense].to_s.empty?
+        t[:tax_expense] = t[:tax_expense].to_sym unless t[:tax_expense].nil?
         #collapse whitespace and trim whitespace in descriptions
         t[:description] = t[:description].gsub(/\s+/," ").strip unless t[:description].nil?
       end 
