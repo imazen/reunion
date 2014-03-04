@@ -20,7 +20,11 @@ ul.nav.nav-pills
       th
        = "Summary of #{results.count} expenses:"
       th
-        = results.map{|t|t.amount}.inject(1, &:+).to_usd
+        - debits = results.map{|t|t.amount}.select{|v| v < 0}
+        = debits.inject(0, &:+).to_usd  + " (#{debits.count.to_s})"
+      th
+        - credits = results.map{|t|t.amount}.select{|v| v >= 0}
+        = credits.inject(0, &:+).to_usd  + " (#{credits.count.to_s})"
       th
         = results.first[:tax_expense]
 
@@ -29,7 +33,9 @@ ul.nav.nav-pills
         td
           = r.date_str
         td
-          = r.amount_str
+          = r.amount < 0 ? r.amount_str : ""
+        td
+          = r.amount >= 0 ? r.amount_str : ""
         td
           = r.description
         td
