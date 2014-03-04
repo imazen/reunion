@@ -145,14 +145,16 @@ module Reunion
           envato: "Envato Pty Ltd",
           macroplant: "FS *MACROPLANT",
           paddle: "Paddle.com",
-          amazon_digital_services: "Amazon Digital Svcs"}
+          amazon_digital_services: "Amazon Digital Svcs", 
+          jetbrains: "DRI*JETBRAINS"}
         end
 
         with_focus :advertising do
 
           add(
             {icontact: "ICONTACT CORPORATION",
-            moo_printing: "MOO INC PRINTING"})
+            moo_printing: "MOO INC PRINTING", 
+            vistaprint: "VISTAPR*VistaPrint.com"})
 
           with_focus :job_listings do
             {stack_overflow: "STACK OVERFLOW INTERNE",
@@ -229,7 +231,7 @@ module Reunion
           {delta: "^DELTA",
           ryanair: "^RYANAIR",
           klm: "^KLM",
-          hertz: ["^PLATEPASS HERTZ", "HERTZ"],
+          hertz: ["^PLATEPASS HERTZ", "^HERTZ"],
           hyatt: "^HYATT",
           airbnb: "^AIRBNB",
           marriott: "^MARRIOTT",
