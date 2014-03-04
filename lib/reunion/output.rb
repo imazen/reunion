@@ -87,6 +87,7 @@ class Reunion::Export
              {name:"Amount", format: "%.2f"},
              {name:"Description"},
              {name:"Balance After", key: [:balance_after, :balance], format: "%.2f"},
+             {name:"Tax Expense", key: [:tax_expense]},
              {name:"Tags", fn: lambda {|t| get_tags(t).map{|f|f.to_s}.join(",")}},
              {name:"Vendor", key: [:vendor]}
              #{name:"Extra", fn: lambda {|t| t[:chase_tag] }}
