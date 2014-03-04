@@ -1,5 +1,5 @@
 module Reunion
-=begin=
+=begin
   class EntitySearcher
 
     def initialize(entities)
