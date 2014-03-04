@@ -19,7 +19,64 @@ module Reunion
         assert_equal [2,4,3], r.rules.map{|a|a.count}
       end 
     end 
+    it 'should evaluate prefix matches' do
+      r = Rules.new
+      r.match("^PREFIX ").tag(:found)
+      txns = [Transaction.new({:description => "PREFIX suffix"})]
+      RuleEngine.new(r).run(txns)
+      assert_equal [:found], txns.first.tags
+    end 
+
+    it 'should evaluate exact matches' do
+      r = Rules.new
+      r.match("EXACT").tag(:found)
+      txns = [Transaction.new({:description => "EXACT"})]
+      RuleEngine.new(r).run(txns)
+      assert_equal [:found], txns.first.tags
+    end 
+
+    it 'should evaluate case insensitive' do
+      r = Rules.new
+      r.match("EXACT").tag(:found)
+      txns = [Transaction.new({:description => "EXaCT"})]
+      RuleEngine.new(r).run(txns)
+      assert_equal [:found], txns.first.tags
+    end 
+
+    it 'should evaluate regexen' do
+      r = Rules.new
+      r.match(/exa?c?t?/i).tag(:found)
+      txns = [Transaction.new({:description => "EXaCT"})]
+      RuleEngine.new(r).run(txns)
+      assert_equal [:found], txns.first.tags
+    end 
+
   end
+
+  describe 'string match evaluator' do
+    it 'should evaluate prefix matches' do
+      assert Rule.new([]).is_match ["^PREFIX "], ["PREFIX suffix"], nil
+    end 
+
+    it 'should evaluate exact matches' do
+      assert Rule.new([]).is_match ["EXACT"], ["EXACT"], nil
+    end 
+
+    it 'should evaluate case insensitive' do
+      assert Rule.new([]).is_match ["EXaCT"], ["EXACT"], nil
+    end 
+
+    it 'should evaluate regexen' do
+      assert Rule.new([]).is_match [/exa?c?t?/i], ["EXACT"], nil
+    end 
+  end 
+  describe 'default vendors' do
+    it 'should parse' do 
+      v = Vendors.new
+      v.add_default_vendors
+      re = RuleEngine.new(v)
+    end 
+  end 
   describe 'rule evaluation engine' do
     
     it 'should work' do
@@ -34,21 +91,15 @@ module Reunion
 
 
 
-      v = Vendors.new
-      v.add_default_vendors
-      c = Clients.new
-
       txns = []
       txns << Transaction.new({:date => Date.parse('2014-01-01'), 
                                 :amount => BigDecimal.new("20.00"),
                                 :description => "Something",
                                 :tags => [:a]})
-      re = RuleEngine.new(r, v, c)
+      re = RuleEngine.new(r)
       re.run(txns)
       
-      assert txns.first.tags.include? :b
-
-      assert txns.first.tags.include? :c
+      assert_equal [:a,:b,:c], txns.first.tags
     end 
   end
 end

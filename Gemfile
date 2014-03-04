@@ -15,3 +15,4 @@ gem "rerun", :git => "git://github.com/alexch/rerun.git", :group => :development
 gem "rb-fsevent", :group => :development
 gem "webrat", :group => :development
 gem "pry", :group => :development
+gem "rake", :group => :development

@@ -35,10 +35,11 @@ require 'reunion/parsers'
 require 'reunion/standard_convention'
 require 'reunion/account_merge'
 require 'reunion/account_reconcile'
-require 'reunion/vendors'
 require 'reunion/expectations'
 
 
 require 'reunion/output'
 require 'reunion/transfers'
 require 'reunion/rules'
+
+require 'reunion/vendors'

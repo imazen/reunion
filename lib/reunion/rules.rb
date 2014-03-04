@@ -1,43 +1,82 @@
 module Reunion
 
-  class DelegateAndNotify < ::SimpleDelegator
-    attr_reader :notify_method
-    def initialize(obj, method_to_call_on_action)
-      @notify_method = method_to_call_on_action
-      super(obj)
-    end
-
-    def method_missing(m, *args, &block)
-      self.__getobj__.send(@notify_method)
-      #begin
-      #Kernel.byebug
-      super(m, *args, &block)
-      #ensure
-      #  $@.delete_if {|t| /\A#{Regexp.quote(__FILE__)}:#{__LINE__-2}:/o =~ t} if $@
-      #end
-    end
-  end 
 
   class Rules
 
-    def initialize
-      @stack = []
+    def initialize(stack = nil, parent = nil, block_scope = nil)
+      @block_scope = block_scope.nil? ? (stack.nil? && parent.nil?) : block_scope
+      @parent = parent
+      @children = []
+      @stack = stack || []
       @rules = []
       @searcher = nil
+      @subtree_rules_added = 0
+      @block_result_handler = nil 
     end
 
     attr_reader :rules
-    def add(&block)
-      self.instance_eval(&block)
+    attr_accessor :block_scope
+    attr_accessor :subtree_rules_added 
+
+    def block_result_handler
+      @block_result_handler || (@parent.nil? ? nil : @parent.block_result_handler) || :add_default_hash
+    end 
+
+    def add(hash = nil, &block)
+      self.send(block_result_handler, hash) unless hash.nil? 
+      block_returns = self.instance_eval(&block) unless block.nil?
+      self.send(block_result_handler, block_returns) unless block.nil?
+      flush(true)
+    end 
+
+    def add_vendors(&block)
+
+      @block_result_handler = :add_vendor_hash
+      add(&block)
+    end
+
+    def add_clients(&block)
+      @block_result_handler = :add_client_hash
+      add(&block)
+    end
+
+    def add_default_hash(retval)
+    end 
+
+    def add_client_hash(retval)
+      add_vendor_hash(retval, "client")
+    end 
+
+    def add_vendor_hash(retval, prefix = "vendor")
+      
+      return unless retval.is_a?(Hash)
+      retval.each do |key,value|
+        r = add_rule_part("set_#{prefix}",key)
+
+        if value.is_a?(Hash)
+          d = value[:description] || value[:desc] || value[:d]
+          f = [value[:focus]] + [value[:focus]] + [value[:f]] + [value[:tag]] + [value[:tags]]
+          f = f.flatten.uniq.compact
+          q = value[:query] || value[:q]
+
+          r = r.add_rule_part("for_match", q) unless q.nil?
+          r = r.add_rule_part("set_#{prefix}_description", d) unless d.nil?
+          r = r.add_rule_part("set_#{prefix}_tag", d) unless f.nil?
+        else
+          r = r.add_rule_part("for_match", value)
+        end 
+        flush(true)
+ 
+      end 
     end 
 
 
-    QUERY_NOUNS = %w{all none transfer transactions focuses vendors clients tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
+    QUERY_NOUNS = %w{all none transfer transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
     QUERY_VERBS = %w{for when exclude}
-    ACTION_NOUNS = %w{vendor client subledger tax_expense as_transfer tag}
+    ACTION_NOUNS = %w{vendor client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
     ACTION_VERBS = %W{set use}
  
-    ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions}
+    ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions, :with_focus => :set_vendor_tag, :for_focuses => :for_vendor_tags, :focuses => :for_vendor_tags}
 
     def parse_step_name(name)
       name = name.to_s
@@ -59,8 +98,6 @@ module Reunion
         noun: noun.to_sym}
     end 
 
-    #we can't dot-chain because we can't tell if it's an endpoint or actually used. 
-    #we co
     def query_method_names
       (QUERY_VERBS.map{|v| QUERY_NOUNS.map{|n| v + "_" + n}}.flatten + QUERY_NOUNS)
     end 
@@ -77,27 +114,12 @@ module Reunion
     end 
     def method_missing(meth, *args, &block)
       if dynamic_method_name_symbols.include?(meth)
-        r = add_rule_part(meth, *args, &block)
-        @next_call_proxied = false
-        r
+        add_rule_part(meth, *args, &block)
       else
         super(meth, *args, &block)
       end
     end
 
-    #This is called if the DelegateAndNotify instance is used
-    def proxy_restore_stack_from_last_rule
-      @next_call_proxied = true #track this so we can adjust the stacktrace
-      @stack = @rules.pop
-      #TODO - this doesn't handle the case where someone assigns the result to a variable. 
-      #We would need to give the rule a uid, like SecureRandom.hex, so we can remove it from the rules at any time.
-      #We would also have to define how to handle exiting the stack. If we can't assume it's being used in the same 
-      #context, we'd have to compare the old context to the new context to guess if they are the same. 
-      #if they're different (the parent rule from the stored is different from the current stack), then we would either need
-      # to replace the current stack (and restore it upon exit), or add a barrier, or graft it. 
-      #Nothing is clear, so maybe we just say it's unsupported
-
-    end 
 
     def add_rule_part(method, *args, &block)
       name = ALIASES[method] || method
@@ -105,37 +127,54 @@ module Reunion
               {name: name, 
               method_name: method, 
               arguments: args, 
-              stacktrace: caller(@next_call_proxied ? 4 : 2)})
+              stacktrace: caller(2)})
+
+      flush(false) if block_scope
+      newstack = @stack + [part]
+      child_scope = Rules.new(newstack, self, !block.nil?)
+      @children << child_scope
 
       #if block is specified, it's just part of a chain, not an endpoint
       if block
-        #Just part of the chain
-        @stack << part
         #begin
-        r = self.instance_eval(&block)
+        r = child_scope.add(&block)
         #rescue NoMethodError => e 
         #  e.set_backtrace(part[:stacktrace]) unless @exception_rethrown
         #  @exception_rethrown = true
         #  raise e
         #end 
         @exception_rethrown = false
-        deal_with_block_result(r)
-        @stack.pop
-        #Do anyth
+        #Handle return value
+        
         return nil
       else
-        @rules << @stack + [part]
-        #Add the rule, but remove and restore the stack if something is chained
-        return DelegateAndNotify.new(self, :proxy_restore_stack_from_last_rule)
-      end 
-    end 
-    def deal_with_block_result(value)
-      return if value.is_a?(DelegateAndNotify) || value.nil?
-      #TODO: What's with this, what do we do with it. 
-      #Implement if we have a hash shortcut syntax.
+        return child_scope
+      end
     end 
 
-    
+
+
+    def add_completed_rule(stack)
+      @subtree_rules_added += 1
+      if @parent.nil?
+        @rules << stack.clone
+      else
+        @parent.add_completed_rule(stack)
+      end 
+    end 
+
+    def flush(raise_if_useless = false)
+      @children.each{|c| c.flush(true)}
+      @children.clear
+      if subtree_rules_added < 1
+        if block_scope
+          raise "Statement failed to produce a rule" if subtree_rules_added < 1 && raise_if_useless
+        else
+          add_completed_rule(@stack)
+        end
+      end 
+    end 
+
 
 
     # mention (add rule commentary)
@@ -207,8 +246,8 @@ module Reunion
       @disabled
     end 
 
-    def evaluate_filter(f, txn, vendors, clients)
-      result = evaluate_filter_noun(f,txn,vendors,clients)
+    def evaluate_filter(f, txn)
+      result = evaluate_filter_noun(f,txn)
       return f[:verb] == :exclude ? !result : result
     end 
 
@@ -217,7 +256,7 @@ module Reunion
     end
 
 
-    def evaluate_filter_noun(f, txn, vendors, clients)
+    def evaluate_filter_noun(f, txn)
 
       noun = f[:noun]
       args = f[:arguments]
@@ -225,59 +264,52 @@ module Reunion
       a = args.first
 
       #all none transfer
-      return false if (noun == :none)
-      return true if (noun == :all) ||
-                (noun == :transfers && txn[:transfer])
+      return false if noun == :none
+      return true if noun == :all
+      return !!txn[:transfer] if noun == :transfers
 
-      return true if noun == :amount && txn.amount == a
-      return true if noun == :amount_over && txn.amount > a
-      return true if noun == :amount_under && txn.amount < a
-      return true if noun == :amount_between && txn.amount >= args.min && txn.amount <= args.max
+      return txn.amount == a if noun == :amount
+      return txn.amount > a if noun == :amount_over
+      return txn.amount < a if noun == :amount_under
+      return txn.amount >= args.min && txn.amount <= args.max if noun == :amount_between
 
 
-      return true if noun == :year && txn.date.year == a.is_a?(String) ? Date.parse(a).year : a.is_a?(Date) ? a.year : nil
-      return true if noun == :date && txn.date.mjd == to_date_mjd(a)
-      return true if noun == :date_after && txn.date.mjd > to_date_mjd(a)
-      return true if noun == :date_before && txn.date.mjd < to_date_mjd(a)
-      return true if noun == :date_between && txn.date.mjd >= args.map(&to_date_mjd).min && txn.date <= args.map(&to_date_mjd).max
+      return txn.date.year == a.is_a?(String) ? Date.parse(a).year : a.is_a?(Date) ? a.year : nil if noun == :year
+      return txn.date.mjd == to_date_mjd(a) if noun == :date
+      return txn.date.mjd > to_date_mjd(a) if noun == :date_after
+      return txn.date.mjd < to_date_mjd(a) if noun == :date_before
+      return txn.date.mjd >= args.map(&to_date_mjd).min && txn.date <= args.map(&to_date_mjd).max if noun == :date_between
       
       #transactions
-      return true if (noun == :transactions && args.first.call(txn))
+      return args.first.call(txn) if noun == :transactions
 
     
-      if [:focuses, :vendors, :clients, :tags, :tax_expenses, :subledgers, :match].include? noun
-        data = case noun
-        when :vendors
-          txn.vendor
-        when :clients
-          txn.client
-        when :tags
-          txn.tags
-        when :tax_expenses
-          txn[:tax_expense]
-        when :subledgers
-          txn[:subledger]
-        when :match
-          txn.description
-        when :focuses
-          vendors[txn.vendor][:focus]
-        end
+      if [:vendors, :clients, :client_tags, :vendor_tags, :client_descriptions, :vendor_descriptions, :tags, :tax_expenses, :subledgers, :match].include? noun
+        if noun == :match
+          data = txn[:description]
+        elsif !noun.to_s.end_with?("tags") && noun.to_s.end_with?("s")
+          data = txn[noun.to_s[0..-2].to_sym]
+        else
+          data = txn[noun]
+        end 
         return is_match(args,data,f)
+      else
+        raise "Unexpected filter noun #{noun}"
       end
       false
     end 
 
     def is_match(query_arguments, data, filter)
       a = query_arguments.flatten
-      data = data.is_a?(Array) ? data : [data]
+      data = (data.is_a?(Array) ? data : [data]).flatten
       a.any? do |query|
         data.any? do |value|
           case
           when query.is_a?(Regexp) 
-            query =~ value 
-          when query.is_a?(String) && query.length > 1 && query[0] == "^"
-            query[1..-1].casecmp(value) == 0
-          when query.is_a?(String) && query.length > 0  
+            query.match(value) 
+          when query.is_a?(String) && query.start_with?("^")
+            value.downcase.start_with?(query[1..-1].downcase)
+          when query.is_a?(String) && query.length > 0 
             query.casecmp(value) == 0
           when query.is_a?(Symbol) 
             query == value
@@ -297,33 +329,32 @@ module Reunion
       args = action[:arguments]
       arg = args.first
       actual_change = false
+      field_is_array = false
+
       if noun == :as_transfer
-        new_value = args.first.nil? ? true : arg
-        actual_change = txn[:transfer] != new_value
-        txn[:transfer] = new_value
-      elsif noun == :vendor
-        actual_change = txn[:vendor] != arg
-        txn[:vendor] = arg
-      elsif noun == :client
-        actual_change = txn[:client] != arg
-        txn[:client] = arg
-      elsif noun == :subledger
-        actual_change = txn[:subledger] != arg
-        txn[:subledger] = arg
-      elsif noun == :tax_expense
-        actual_change = txn[:tax_expense] != arg
-        txn[:tax_expense] = arg
-      elsif noun == :tag
-        actual_change = !txn.tags.include?(arg)
-        txn.tags << arg if actual_change
+        arg = arg.nil? ? true : arg
+        noun = :transfer
+      elsif noun.to_s.end_with? "tag"
+        field_is_array = true
+        noun = "#{noun}s".to_sym
       end 
+
+      if field_is_array
+        txn[noun] ||= []
+        actual_change = !txn[noun].include?(arg)
+        txn[noun] << arg if actual_change
+      else
+        actual_change = txn[noun] != arg
+        txn[noun] = arg
+      end 
+
       #puts "#{action[:method_name]}(#{args * ','})" if actual_change
       actual_change
     end 
-    def matches?(txn, vendors,clients)
+    def matches?(txn)
       return false if disabled
       #byebug
-      matches = @filters.all?{|f| evaluate_filter(f,txn,vendors,clients)}
+      matches = @filters.all?{|f| evaluate_filter(f,txn)}
       @matched_transactions ||= []
       @matched_transactions << txn if matches
       matches
@@ -346,11 +377,10 @@ module Reunion
 
   end 
   class RuleEngine
-    attr_accessor :rules, :vendors, :clients
-    def initialize(rules, vendors, clients)
+    attr_accessor :rules
+    def initialize(rules)
+      rules.flush(true)
       @rules = rules.rules.map{|r| Rule.new(r)}
-      @vendors = vendors
-      @clients = clients
     end
 
     def run(transactions)
@@ -367,7 +397,7 @@ module Reunion
     def modify_txn(t)
       modified = false
       rules.each do |r| 
-        if r.matches?(t, vendors, clients)
+        if r.matches?(t)
           modified = r.modify(t) 
         end 
       end 
