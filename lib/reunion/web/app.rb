@@ -18,10 +18,10 @@ module Reunion
 
       end 
 
-      def filter_transactions(txns)
+      def filter_transactions(txns, drop_paired_transfers = true)
         txns.select do |t| 
           keep = true
-          keep = false if t[:transfer_pair]
+          keep = false if t[:transfer_pair] && drop_paired_transfers
           keep =  false if get_date_from && t.date < get_date_from
           keep =  false if get_date_to && t.date > get_date_to
           keep
@@ -70,7 +70,7 @@ module Reunion
 
 
       get '/' do
-        slim :index, {:layout => :layout, :locals =>{}}
+        redirect to('/expense')
       end 
 
       get '/search' do
@@ -84,8 +84,11 @@ module Reunion
       end
 
       get '/expense/?' do
+
+        txns = filter_transactions(get_cached_books.all_transactions)
+        all_txns = filter_transactions(get_cached_books.all_transactions, false)
         list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
-        slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list}}
+        slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list, :txns => txns, :all_txns => all_txns}}
       end
 
       get '/expense/:query' do |query|

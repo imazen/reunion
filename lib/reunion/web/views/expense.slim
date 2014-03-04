@@ -1,10 +1,13 @@
 
 h3
-  | Expenses: 
+  | Tax Expense Category: 
   = query.downcase
 
 
 ul.nav.nav-pills
+  li
+    a href="/expense"
+      | Overview
   li
     a href="/expense/none"
       | Untagged
@@ -40,4 +43,63 @@ ul.nav.nav-pills
           = r.description
         td
           = r[:tax_expense]
+
+- deductible_categories = [:advertising, :contract_labor, :insurance, :meals, :misc, :office, :property_rent, :section179, :supplies, :travel, :utilities, :home_office]
+
+- if defined?(txns)
+  table.table.table-condensed
+    tr
+      th Tax Expense Category
+      th Count
+      th Net
+      th Deductible
+    - uncategorized = txns.select{|t| t[:tax_expense].nil?}
+    tr
+      td Uncategorized
+      td
+        = uncategorized.count
+      td
+        = uncategorized.map{|t|t.amount}.inject(0, &:+).to_usd
+    - cats = txns.map{|t|t[:tax_expense]}.compact.uniq.sort
+    - cats.each do |cat|
+      tr
+        - subset = txns.select{|t| t[:tax_expense] == cat}
+        td
+          = cat
+        td
+          = subset.count
+        td
+          = subset.map{|t|t.amount}.inject(0, &:+).to_usd
+        td
+          - if deductible_categories.include?(cat)
+            = subset.map{|t|t.amount}.inject(0, &:+).to_usd
+
+    ruby:
+      @filters = {
+        money_in: lambda{|t| !t[:transfer_pair] && t.amount > 0 },
+        money_out: lambda{|t| !t[:transfer_pair] && t.amount < 0 }, 
+        net: lambda{|t| !t[:transfer_pair] },
+        transfers_paired: lambda{|t| t[:transfer_pair] },
+        transfers_unpaired: lambda{|t|  t[:transfer_pair].nil? && t[:transfer] },
+        deductible_expenses: lambda{|t|  t[:transfer_pair].nil? && deductible_categories.include?(t[:tax_expense])},
+        income: lambda{|t| t[:transfer_pair].nil? && t[:tax_expense] == :income}
+      }
+    table.table.table-condensed
+      tr
+        th Formula
+        th Count
+        th Amount
+        th Currency
+      - ["USD", "EUR"].each do |currency|
+        - @filters.each do |name, lambda|
+          - subset = all_txns.select(&lambda).select{|t| t[:currency] == currency || (t[:currency].nil? && currency == "USD")}
+          tr
+            td
+              = name
+            td
+              = subset.count
+            td
+              = subset.map{|t|t.amount}.inject(0, &:+).to_usd
+            td
+              = currency
 
