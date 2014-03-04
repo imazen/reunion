@@ -16,8 +16,7 @@ def get_transfer_pairs(transfers, all_transactions)
     if !other
         reg_nearby = all_transactions.select { |b| 
             b[:account_sym] != t[:account_sym] && !b[:transfer_pair] && 
-            (b[:date] - t[:date]).to_i.abs < 15 &&
-            (b[:tags].nil? || b[:tags].empty?)}
+            (b[:date] - t[:date]).to_i.abs < 15 && !b.tags.include?(:not_transfer)}
 
         reg_nearby.sort_by! { |b| (b[:date] - t[:date]).to_i.abs }
         other = reg_nearby.detect { |b| b[:amount] == -1 * t[:amount]}
