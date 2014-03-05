@@ -74,7 +74,7 @@ module Reunion
       eval({commentary: commentary}, &block)
     end 
 
-    def with_focus(tag, &block)
+    def use_vendor_tag(tag, &block)
       eval({focus: tag}, &block)
     end
 
@@ -138,7 +138,7 @@ module Reunion
 
       add_vendors do 
 
-        with_focus :software do
+        use_vendor_tag :software do
           {parallels: "CBI*PARALLELS",
           sublime_text: "Sublime HQ Pty Ltd",
           codeweavers: "CODEWEAVERS INC",
@@ -149,20 +149,20 @@ module Reunion
           jetbrains: "DRI*JETBRAINS"}
         end
 
-        with_focus :advertising do
+        use_vendor_tag :advertising do
 
           add(
             {icontact: "ICONTACT CORPORATION",
             moo_printing: "MOO INC PRINTING", 
             vistaprint: "VISTAPR*VistaPrint.com"})
 
-          with_focus :job_listings do
+          use_vendor_tag :job_listings do
             {stack_overflow: "STACK OVERFLOW INTERNE",
             authentic_jobs: "AUTHENTICJOBS.COM",
             thirtyseven_signals_jobs: "37S*JOB BOARD LISTING"}
           end
 
-          with_focus :domains do
+          use_vendor_tag :domains do
             #domains
             {namecheap: ["NMC*NAMECHEAP.COM","NMC*NAME-CHEAP.COM SVC", "UnifiedRegistrar"],
             geotrust: "GEOTRUST *",
@@ -170,7 +170,7 @@ module Reunion
           end 
 
         end 
-        with_focus :software_service do
+        use_vendor_tag :software_service do
           {adobe: "ADOBE SYSTEMS, INC.",
           repository_hosting: "REPOSITORY HOSTING",
           ejunkie: "SINE INFO VENTURES PRIVATE LIMITED",
@@ -195,7 +195,7 @@ module Reunion
 
 
         #Communications
-        with_focus :communication do
+        use_vendor_tag :communication do
           {time_warner_cable: ["INSIGHT CABLE", "TWC*TIMEWARNERCBLE"],
           skype: "Skype Communications Sarl", 
           verizon: "^VZWRLSS",
@@ -205,7 +205,7 @@ module Reunion
 
 
         #uniform
-        with_focus :clothing do
+        use_vendor_tag :clothing do
           {olukai: "OLUKAI INC - RETAIL",
           dillards: "^DILLARD'S",
           cafepress: "CPC*CAFEPRESS.COM",
@@ -216,7 +216,7 @@ module Reunion
         end
 
         #hardware
-        with_focus :hardware do
+        use_vendor_tag :hardware do
           {apple_store: ["APL*APPLEONLINESTOREUS", "^APPLE STORE "],
           adorama: "ADORAMA INC",
           microsoft_store: "MS *MICROSOFT STORE",
@@ -227,7 +227,7 @@ module Reunion
         end
 
         #travel
-        with_focus :travel do
+        use_vendor_tag :travel do
           {delta: "^DELTA",
           ryanair: "^RYANAIR",
           klm: "^KLM",
@@ -242,24 +242,24 @@ module Reunion
         end
 
         #training
-        with_focus :training do
+        use_vendor_tag :training do
           {shiprise: {q:"SHIPRISE", d:"RubyTapas, Avdi Grimm screencasts"},
           oreilly: "O'REILLY MEDIA",
           pragmatic_programmers: "PRAGMATIC PROGRAMMERS"}
         end
 
         #shipping
-        with_focus :shipping do
+        use_vendor_tag :shipping do
           {ups: ["^THE UPS STORE", "^UPS*"],
           usps: "^USPS"}
         end
 
-        with_focus :insurance do
+        use_vendor_tag :insurance do
           {auto_owners_insurance: "AUTO OWNERS INSURANCE"}
         end 
         
         #office 
-        with_focus :office do
+        use_vendor_tag :office do
           {staples: /\ASTAPLE?S?\s*[0-9]/i,
           target: "^TARGET ",
           walmart: "^WAL-MART ",
@@ -272,7 +272,7 @@ module Reunion
         end
 
         #power
-        with_focus :utilities do
+        use_vendor_tag :utilities do
           {duke_energy: "SPEEDPAY:DUKE-ENERGY"}
         end
 
