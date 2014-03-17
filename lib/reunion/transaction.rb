@@ -38,7 +38,7 @@ module Reunion
       @data[:tags] ||= []
     end 
     
-    delegated_reader :id, :amount, :description, :tags, :balance_after, :vendor, :client
+    delegated_reader :id, :amount, :description, :tags, :balance_after, :vendor, :client, :account_sym
 
     delegated_reader :transfer, :transfer_pair, :discard_if_unmerged, :priority
 

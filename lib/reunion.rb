@@ -8,6 +8,8 @@ require 'benchmark'
 require 'delegate'
 require 'set'
 require 'fileutils'
+require 'digest/sha1'
+require 'json'
 
 class Array
   def stable_sort_by (&block)
@@ -43,3 +45,4 @@ require 'reunion/transfers'
 require 'reunion/rules'
 
 require 'reunion/vendors'
+require 'reunion/overrides'
