@@ -1,6 +1,39 @@
 module Reunion
 
 
+=begin
+  class RuleSyntax
+
+
+
+      if noun == :as_transfer
+        arg = arg.nil? ? true : arg
+        noun = :transfer
+      elsif noun.to_s.end_with? "tag"
+        field_is_array = true
+        noun = "#{noun}s".to_sym
+      end 
+
+      if field_is_array
+        txn[noun] ||= []
+        actual_change = !txn[noun].include?(arg)
+        txn[noun] << arg if actual_change
+      else
+        actual_change = txn[noun] != arg
+        txn[noun] = arg
+      end 
+
+
+    QUERY_NOUNS = %w{all none transfer transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
+    QUERY_VERBS = %w{for when exclude}
+    ACTION_NOUNS = %w{vendor client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
+    ACTION_VERBS = %W{set use}
+ 
+    ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions, :with_focus => :set_vendor_tag, :for_focuses => :for_vendor_tags, :focuses => :for_vendor_tags}
+
+  end 
+=end
+
   class Rules
 
     def initialize(stack = nil, parent = nil, block_scope = nil)
@@ -26,6 +59,12 @@ module Reunion
       self.send(block_result_handler, hash) unless hash.nil? 
       block_returns = self.instance_eval(&block) unless block.nil?
       self.send(block_result_handler, block_returns) unless block.nil?
+      flush(true)
+    end 
+
+    def eval_string(ruby_code)
+      block_returns = self.instance_eval(ruby_code) unless ruby_code.nil?
+      self.send(block_result_handler, block_returns) unless ruby_code.nil?
       flush(true)
     end 
 
@@ -71,9 +110,9 @@ module Reunion
     end 
 
 
-    QUERY_NOUNS = %w{all none transfer transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
+    QUERY_NOUNS = %w{all none transfer ventures rebills transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
     QUERY_VERBS = %w{for when exclude}
-    ACTION_NOUNS = %w{vendor client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
+    ACTION_NOUNS = %w{vendor rebill venture client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
     ACTION_VERBS = %W{set use}
  
     ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions, :with_focus => :set_vendor_tag, :for_focuses => :for_vendor_tags, :focuses => :for_vendor_tags}
@@ -402,6 +441,12 @@ module Reunion
         end 
       end 
       modified
+    end 
+    #Returns matching transactions grouped by rule
+    def find_matches(transactions)
+      rules.map do |r|
+        transactions.select{|t| r.matches?(t)}
+      end
     end 
 
   end 
