@@ -15,9 +15,13 @@ module Reunion
         end 
         t[:tax_expense] = nil if t[:tax_expense].to_s.empty?
         t[:tax_expense] = t[:tax_expense].to_sym unless t[:tax_expense].nil?
+        t.delete(:tax_expense) if t[:tax_expense].nil?
         #collapse whitespace and trim whitespace in descriptions
         t[:description] = t[:description].gsub(/\s+/," ").strip unless t[:description].nil?
       end 
+      invalid_transactions = transactions.select{|t| t[:date].is_a?(String)}
+      transactions -= invalid_transactions
+      results[:invalid_transactions] = invalid_transactions
 
       #Reverse transactions if they're not in ascending order
       if transactions.length > 0 && transactions.first[:date] > transactions.last[:date]
@@ -261,7 +265,8 @@ module Reunion
         currency: r[:currency],
         description: r[:name].gsub(/[\u{80}-\u{ff}]/,''),
         to_email: r[:to_email_address],
-          paypal_type:r[:type]
+          paypal_type:r[:type],
+          paypal_country: r[:country]
         }
       end
       transactions.reverse!
