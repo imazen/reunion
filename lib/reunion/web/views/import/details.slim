@@ -1,0 +1,49 @@
+
+
+- unless file.transactions
+  table.table.table-condensed
+
+    tr
+      th Path
+      td
+        = file.path
+    tr
+      th Account tag
+      td
+        = file.account_tag
+    tr class=(file.account ? "success" : "danger")
+      th Account
+      td
+        = file.account.name if file.account
+    tr
+      th Parser tag
+      td
+        = file.parser_tag
+    tr class=(file.parser ? "success" : "danger")
+      th Parser
+      td
+        = file.parser.name if file.parser
+
+
+- if file.transactions
+
+  - @rows = [file.invalid_transactions.map{|t| {invalid: true}.merge(t)},[file.transactions, file.statements].flatten.map{|t| t.data}].flatten
+  - @cols = @rows.map{|h|h.keys}.flatten.uniq.compact - [:account_sym, :priority, :source, :subindex]
+
+  h3 Displaying 
+  p
+    | Path: 
+    = file.path
+  p 
+    | Account: 
+    = file.account.name
+  table.table.table-condensed
+    tr
+      - @cols.each do |c|
+        th
+          = c
+    - @rows.each do |r|
+      tr class=(r[:invalid] ? "danger" : r[:discard] ? "warning" : "success")
+        - @cols.each do |c|
+          td
+            = ([:amount, :balance, :balance_after].include?(c) && r[c]) ? "%.2f" % r[c] : r[c]

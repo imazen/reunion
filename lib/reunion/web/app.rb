@@ -1,11 +1,14 @@
 require "sinatra"
 require "slim"
+require "json"
+
 module Reunion
   module Web
     class App < ::Sinatra::Base
 
       set :root, File.dirname(__FILE__)
 
+      attr_accessor :org
 
       helpers do
         def get_date_from
@@ -18,12 +21,16 @@ module Reunion
 
       end 
 
+      before do
+        org.ensure_complete
+      end
+
       def filter_transactions(txns, drop_paired_transfers = true)
         txns.select do |t| 
           keep = true
           keep = false if t[:transfer_pair] && drop_paired_transfers
-          keep =  false if get_date_from && t.date < get_date_from
-          keep =  false if get_date_to && t.date > get_date_to
+          #keep =  false if get_date_from && t.date < get_date_from
+          #keep =  false if get_date_to && t.date > get_date_to
           keep
         end 
       end 
@@ -41,16 +48,30 @@ module Reunion
       end 
 
       def get_books
-        b = Reunion::ImazenBooks.new
-        b.configure
-        b.load
-        b.rules
-        b
+        org
       end
+
 
       def get_cached_books
         @@books ||= get_books
       end
+
+      get '/import/sources' do
+        slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
+      end 
+
+      get '/bank' do
+        slim :'bank/index', {layout: :layout, :locals => {:bank_accounts => org.bank_accounts}}
+      end
+
+      get '/bank/:id/reconcile' do |id|
+        slim :'bank/reconcile', {layout: :layout, :locals => {:bank => org.bank_accounts.find{|a|a.permanent_id == id.to_sym}}}
+      end
+
+
+      get '/import/sources/:digest' do |digest|
+        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.select{|f| f.path_account_digest == digest}.first}}
+      end 
 
       get '/transfers' do
         slim :unmatched_transfers, {layout: :layout, :locals => {:query => ""}}
@@ -77,6 +98,47 @@ module Reunion
         slim :search, {layout: :layout, :locals => {:query => ""}}
       end
 
+      def txns_to_workon
+        get_cached_books.all_transactions.select do |t|
+          keep = true
+          keep = false if t[:transfer_pair]
+          keep = false if t.date < Date.parse('2013-03-16')
+          keep = false if t.date > Date.parse('2014-03-19')
+          keep = false if [:income, :owner_draw].include?(t[:tax_expense])
+          keep
+        end
+      end 
+
+      get '/overrides' do
+        slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
+      end
+
+      post '/overrides' do
+        change_made = false
+        params.each_pair do |k,v|
+          unless v.to_s.empty? || !k.start_with?('memo_')
+            digest = k.sub /\Amemo_/, ""
+            txn = get_cached_books.all_transactions.select{|t| t.lookup_key == digest}.first
+            existing = get_cached_books.overrides.by_digest(digest)
+            changes = existing.nil? ? {} : existing.changes
+            oldval = changes[:memo] || txn[:memo]
+            if oldval != v
+              changes[:memo] = v
+              get_cached_books.overrides.set_override(txn,changes)
+              change_made = true
+            end 
+          end 
+        end 
+        if change_made
+          get_cached_books.overrides.save 
+          get_cached_books.overrides.apply_all(get_cached_books.all_transactions)
+        end
+
+        slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
+      end 
+
+
+
       get '/search/:query' do |query|
         results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
 
@@ -102,10 +164,33 @@ module Reunion
       end
 
       get '/rules' do
-        rules = get_cached_books.rule_engine
+        rules = get_cached_books.rule_sets
         slim :rules, {:layout => :layout, :locals => {:rules => rules}}
       end 
 
+      get '/rules/repl' do
+        slim :'rules/repl', {:layout => :layout}
+      end 
+
+      post '/rules/repl' do
+        content_type :json
+        code = params[:ruby]
+        r = Rules.new
+
+        begin
+          r.eval_string(code)
+        rescue Exception => e
+          return {errors:e}.to_json
+        end
+
+        rs = RuleEngine.new(r)
+        {results: rs.find_matches(get_cached_books.all_transactions).flatten.map{|t| t.data}}.to_json
+      end
+
+      get '/transaction/:id' do |id|
+        results = get_cached_books.all_transactions.select{|t| t.lookup_key == id}
+        slim :'transaction/details', {:layout => :layout, :locals => {:results => results, :txn => results.first, :key => id}}
+      end 
 
     end
   end

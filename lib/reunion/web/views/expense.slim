@@ -36,7 +36,8 @@ ul.nav.nav-pills
     - results.each do |r|
       tr
         td
-          = r.date_str
+          a href="/transaction/#{r.lookup_key}"
+            = r.date_str
         td
           = r.amount < 0 ? r.amount_str : ""
         td

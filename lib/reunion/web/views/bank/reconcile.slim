@@ -1,0 +1,34 @@
+
+h3 
+  | Final discrepancy: 
+  = "%.2f" % bank.final_discrepancy
+
+table.table.table-condensed
+  tr
+    th _
+    th Date_______
+    th Amount
+    th Balance
+    th Discrep.
+    th Description
+    th Source
+  - bank.reconciliation_report.each do |r|
+    tr class=(r && r[:discrepancy] ? "danger" : r && r[:amount].nil? ? "info" : "default")
+      - if r
+        td
+          - if r[:key]
+            a href=("/transaction/" + r[:key])
+              | go
+        td
+          = r[:date].strftime("%Y-%m-%d") if r[:date]     
+        td
+          = "%.2f" % r[:amount] if r[:amount]
+        td
+          = "%.2f" % r[:balance] if r[:balance] 
+        td
+          = "%.2f" % r[:discrepancy] if r[:discrepancy]
+        td
+          = r[:description]
+        td
+          = r[:source]
+     

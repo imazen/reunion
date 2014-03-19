@@ -1,0 +1,18 @@
+
+
+
+- if results.count > 1
+  h3 Multiple transactions with same ID found! error!
+- if txn.nil?
+  h3 No transaction found matching #{key}
+- unless txn.nil?
+  table.table.table-condensed
+    - txn.data.each_pair do |k,v|
+      tr
+        th
+          = k
+        td
+          = v
+
+  h4 txn.inspect: 
+  = txn.inspect

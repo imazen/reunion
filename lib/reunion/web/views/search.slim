@@ -3,6 +3,20 @@ h3 Search
 
 input type="text" id="query" value=(defined?(query) ? query : "")
 
+/ Filter by
+  tax_expense
+  account_sym
+  currency
+  date >
+  date < 
+  amount_positive
+  amount_negative
+  vendor
+  client
+  has_tag
+  lacks_tag
+
+
 - if defined?(results) && results
   table.table.table-condensed
     - results.each do |r|
@@ -13,3 +27,4 @@ input type="text" id="query" value=(defined?(query) ? query : "")
           = r.amount_str
         td
           = r.description
+

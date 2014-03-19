@@ -13,7 +13,8 @@ html lang="en"
     link href="/css/bootstrap.css" rel="stylesheet"
     link href="/css/bootstrap-theme.css" rel="stylesheet"
     link href="/css/reunion.css" rel="stylesheet"
-
+    script src="/js/jquery-2.1.0.min.js"
+    script src="/js/bootstrap.min.js"
   body
     /Header
     .navbar.navbar.navbar-static-top role="banner" id="top"
@@ -28,16 +29,21 @@ html lang="en"
             = "Reunion"
           .navbar-collapse.collapse.bs-navbar-collapse role="navigation"
             ul.nav.navbar-nav
+              li
+                a href="/import/sources" 1. Import
+              li
+                a href="/bank" 2. Reconcile
               li 
-                a href="/" Home
-              li 
-                a href="/search" Search
+                a href="/rules" 3. Rules
               li
-                a href="/expense" Expenses
+                a href="/edit" 4. Correct
+
               li
-                a href="/transfers" Transfers
+                a href="/expense" 5. Expenses
               li
-                a href="/rules" Rules
+                a href="/transfers" 6. Transfers
+              li
+                a href="/report" 7. Report
 
     .container
 
@@ -47,6 +53,4 @@ html lang="en"
       == yield
 
 
-    script src="/js/jquery-2.1.0.min.js"
 
-    script src="/js/bootstrap.min.js"

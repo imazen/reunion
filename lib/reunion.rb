@@ -46,3 +46,4 @@ require 'reunion/rules'
 
 require 'reunion/vendors'
 require 'reunion/overrides'
+require 'reunion/organization'

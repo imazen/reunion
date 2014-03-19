@@ -1,5 +1,5 @@
 
-class Reunion::Account
+class Reunion::BankAccount
 
   def sort_to_reduce_discrepancies(startbal, combined)
 
@@ -59,7 +59,7 @@ class Reunion::Account
 
 
     #Order statements first...
-    combined = statements.map {|t| t[:bal] = true; t} + transactions.map {|t| t[:tran] = true; t}
+    combined = statements.map {|t| t[:bal] = true; t} + transactions
 
     combined = combined.compact.stable_sort_by { |t| t[:date].iso8601 }
 
@@ -78,6 +78,7 @@ class Reunion::Account
     combined.each_with_index do | row, index |
       result_row = {}
       result_row[:id] = row[:id] if row[:id]
+      result_row[:key] = row.lookup_key if row.respond_to? :lookup_key
       result_row[:date] = row[:date] if row[:date]
       result_row[:amount] = row[:amount] if row[:amount]
       result_row[:description] = row[:description] if row[:description]

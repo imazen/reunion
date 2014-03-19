@@ -5,7 +5,7 @@ module Reunion
   class Override
     def initialize(txn = nil, changes = {})
       if txn
-        OverrideSet.assert_has_subindex(txn)
+        txn.lookup_key
         @account_str = txn.account_sym.to_s
         @date_str = txn.date_str
         @amount_str = "%.2f" %  txn.amount
@@ -18,12 +18,16 @@ module Reunion
 
     attr_accessor :account_str, :date_str, :amount_str, :description, :subindex, :changes, :txn_id 
 
-    def lookup_key
-      account_str + "|" + date_str + "|" + amount_str + "|" + description.strip.squeeze(" ").downcase + "|" + subindex.to_s
+    def lookup_key_basis
+      [account_str,date_str,amount_str,description.strip.squeeze(" ").downcase,subindex.to_s] * "|"
     end 
 
     def lookup_digest
-      Digest::SHA1.hexdigest(lookup_key)
+      @lookup_digest ||= Digest::SHA1.hexdigest(lookup_key_basis)
+    end 
+
+    def txn_id_digest
+      @txn_id_digest ||= txn_id.to_s.empty? ? nil : Digest::SHA1.hexdigest(txn_id)
     end 
 
     def changes_json
@@ -57,15 +61,15 @@ module Reunion
     def state
       [@account_str, @date_str, @amount_str, @description,@subindex,@changes,@txn_id]
     end
-
-
-
   end
 
   class OverrideSet
 
-    def initialize
+    attr_accessor :overrides, :by_info, :filename
+
+    def initialize()
       @overrides ||= {}
+      @by_info ||= {}
     end
 
     def to_tsv_str
@@ -74,12 +78,32 @@ module Reunion
        overrides.values.map{|ov| {id: ov.txn_id, account: ov.account_str, date: ov.date_str, amount: ov.amount_str, description: ov.description, subindex: ov.subindex.to_s, changes: ov.changes_json}})
     end
 
+    def self.load(filename)
+      if File.exist? filename
+        contents = File.read(filename)
+        set = from_tsv_str(contents)
+      else
+        set = OverrideSet.new
+      end 
+      set.filename = filename
+
+      set
+    end 
+
+    def save(path = nil)
+      path ||= filename
+      File.write(path, to_tsv_str)
+    end 
+
     def self.from_tsv_str(contents)
       a = StrictTsv.new(contents.encode('UTF-8').rstrip).parse
 
       set = OverrideSet.new
 
-      pairs = a.map do |r|
+      by_primary = []
+      by_info = []
+
+      a.each do |r|
         ov = Override.new
         ov.account_str = r[:account].strip.downcase
         ov.txn_id = r[:id].strip.downcase
@@ -89,34 +113,29 @@ module Reunion
         ov.description = r[:description].gsub(/\s+/," ").strip
         ov.subindex = Integer(r[:subindex].strip)
         ov.load_changes_from_json(r[:changes])
-        [ov.lookup_key, ov]
+        by_primary << [ov.txn_id_digest || ov.lookup_digest, ov]
+        by_info << [ov.lookup_digest, ov.txn_id_digest] unless ov.txn_id_digest.nil?
       end
-
-      set.overrides = Hash[pairs]
+      set.overrides = Hash[by_primary]
+      set.by_info = Hash[by_info]
       set
     end
 
     def by_txn(txn)
-      overrides[get_txn_key(txn)]
-    end 
-    def set_changes(txn, changes)
-      key = get_txn_key(txn)
-      overrides[key] ||= Override.new(txn,changes)
+      by_digest(txn.lookup_key)
     end 
 
-    def self.assert_has_subindex(transaction)
-      raise "Transaction without subindex found. Call set_subindexes on ALL transactions before using the Overrides system" if transaction[:subindex].nil?
-    end
+    def by_digest(digest)
+      overrides[digest] || overrides[by_info[digest]]
+    end 
 
-    def get_txn_key(t)
-      OverrideSet.assert_has_subindex(t)
-      t.account_sym.to_s + "|" + t.date_str + "|" + ("%.2f" %  t.amount) + "|" + t.description.strip.squeeze(" ").downcase + "|" + t[:subindex].to_s
-    end
+    def set_override(txn,changes)
+      ov = Override.new(txn,changes)
+      overrides[ov.txn_id_digest || ov.lookup_digest] = ov 
+      by_info[ov.lookup_digest] = ov.txn_id_digest unless ov.txn_id_digest.nil?
+    end 
 
-
-    attr_accessor :overrides
-
-    def set_subindexes(absolutely_all_transactions)
+    def self.set_subindexes(absolutely_all_transactions)
       txns = absolutely_all_transactions
       #Group into identical transactions
       match = lambda { |t|  t.account_sym.to_s + "|" + t.date_str + "|" + ("%.2f" %  t.amount) + "|" + t.description.strip.squeeze(" ").downcase  }
@@ -128,11 +147,9 @@ module Reunion
       end
     end 
 
-
-
     def apply_all(transactions)
       transactions.each do |t|
-        result = overrides[get_txn_key(t)]
+        result = by_txn(t)
         if result
           result.changes.each_pair do |k,v|
             t[k] = v

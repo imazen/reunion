@@ -1,0 +1,25 @@
+
+
+table.table.table-condensed
+  tr
+    th Name
+    th Currency
+    th Input files
+    th Input txn count
+    th Final Txn count
+    th Discrepancy
+  - bank_accounts.each do |b|
+    tr
+      th
+        = b.name
+      td
+        = b.currency
+      td
+        = b.input_files.count
+      td
+        = b.input_files.map{|f|f.transactions}.flatten.count
+      td
+        = b.transactions.count
+      td
+        a href="/bank/#{b.permanent_id}/reconcile"
+          = "%.2f" % b.final_discrepancy

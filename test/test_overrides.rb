@@ -13,8 +13,8 @@ module Reunion
                                 :account_sym => :bank})
 
       @set = OverrideSet.new
-      @set.set_subindexes(@txns)
-      @set.set_changes(@txns[0], {tags: [:b]})
+      OverrideSet.set_subindexes(@txns)
+      @set.set_override(@txns[0], {tags: [:b]})
     end 
 
     it 'should apply overrides correctly' do

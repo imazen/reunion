@@ -1,0 +1,41 @@
+h3
+  | Results
+
+- if defined?(results) && results
+  form method="post"
+    input.btn.btn-primary type="submit" 
+    table.table.table-condensed
+      tr
+        th
+         = "Summary of #{results.count}:"
+        th
+          - debits = results.map{|t|t.amount}.select{|v| v < 0}
+          = debits.inject(0, &:+).to_usd  + " (#{debits.count.to_s})"
+        th
+          - credits = results.map{|t|t.amount}.select{|v| v >= 0}
+          = credits.inject(0, &:+).to_usd  + " (#{credits.count.to_s})"
+        th
+          | Description
+        th Tax Expense
+        th
+          | Account Name
+        th Memo
+
+      - results.each do |r|
+        tr
+          td
+            = r.date_str
+          td
+            = r.amount < 0 ? r.amount_str : ""
+          td
+            = r.amount >= 0 ? r.amount_str : ""
+          td
+            = r.description
+          td
+            = r[:tax_expense]
+          td
+            = r[:account_sym]
+            |   
+            = r[:currency]
+          td 
+            input.memo name=("memo_" + r.lookup_key) type="text" value=(r[:memo])

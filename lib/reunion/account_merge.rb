@@ -1,11 +1,8 @@
 require 'pp'
-class Reunion::Account
+class Reunion::BankAccount
   def merge_duplicate_transactions(all_transactions)
 
-    
     match = lambda { |t|  t.date_str + "|" + ("%.2f" %  t.amount) + "|" + t.description.strip.squeeze(" ").downcase  }
-
-
 
     #We have to give each transaction a unique index so we can do set math without accidentially removing similar txns
     #And so we can resort correctly at the end
@@ -64,24 +61,33 @@ class Reunion::Account
 
         has_primary_txn = subgroup.any?{|t| t[:discard_if_unmerged].nil? }
 
-        #Merge them into a single result transaction
-        result_row = subgroup.inject(Reunion::Transaction.new){|acc, current| acc.merge_transaction(current)}
-        result_row.delete(:discard_if_unmerged) if has_primary_txn
-
-        pp result_row if log_it
-        #result_row[:source_rows] = subgroup.dup
-        #result_row[:description] += match.call(result_row)
-        result_row
+        if has_primary_txn
+          subgroup.each{|t| t.delete(:discard_if_unmerged)}
+          subgroup.inject(Reunion::Transaction.new){|acc, current| acc.merge_transaction(current)}
+        else 
+          subgroup
+        end 
       end 
 
 
 
       result
-    end
-    matches = matches.flatten.compact
+    end 
+
+    matches = matches.flatten.map do |t|
+      if t[:discard_if_unmerged]
+        t[:discard] = true
+        t[:discard_reason] = "Shadow transaction remains unmerged"
+        t.delete(:discard_if_unmerged)
+        nil
+      else
+        t
+      end
+    end.compact
 
     #Restore order
     matches.sort_by! {|x| [x.date_str, x[:temp_index]]}
+    matches.each{|x| x.delete(:temp_index)}
     
     matches
   end 

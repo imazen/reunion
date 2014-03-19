@@ -1,0 +1,52 @@
+
+h3 Rule eval
+
+
+textarea#repl
+
+div#errors
+
+table.table.table-condensed#results
+
+
+javascript:
+
+  $(function(){
+    var oldVal = "";
+    errorsDiv = $('#errors');
+    resultsTable = $('#results');
+    replText = $('#repl')
+
+    var fetchResults = function(text){
+      $.post("/rules/repl",{ruby: text},"json").done(function(data){
+        //data = JSON.parse(data);
+        errorsDiv.empty();
+        resultsTable.empty();
+        if (data.errors){
+          errorsDiv.append(data.errors);
+        }
+        if (data.results){
+          resultsTable.append('<tr><th></th><th></th><th></th></tr>');
+
+          $.each(data.results, function(ix, row){
+            r = $('<tr/>');
+            $('<td>').text(row["date"]).appendTo(r);
+            $('<td>').text(Number(row["amount"]).toFixed(2)).appendTo(r);
+            $('<td>').text(row["description"]).appendTo(r);
+            resultsTable.append(r);
+          });
+
+        }
+      });
+    };
+
+    replText.on("change keyup paste", function() {
+        var currentVal = replText.val();
+        if(currentVal == oldVal) {
+            return; //check to prevent multiple simultaneous triggers
+        }
+        oldVal = currentVal;
+
+        fetchResults(currentVal);
+    });
+  });

@@ -32,7 +32,7 @@ We can generate tax and ledgers based on transaction tags
 
 ## Todo
 
-Should we say vendor focus, vendor services, vendor_provides?
+Allows manual transfer pairing via shared guids
 Add credit-card charge-back (REBILL) matching/handling
 What terminology to differentiate between 'discard_if_unmatched' transactions like jot and authoritative transactions?
 Add 'expectations system' to allow for financial planning (and to double as tag tagging rules)
