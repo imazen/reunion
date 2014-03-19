@@ -30,20 +30,23 @@ end
 module Reunion
 end
 
-require 'reunion/transaction'
-require 'reunion/account'
-require 'reunion/input_file'
 require 'reunion/parsers'
-require 'reunion/standard_convention'
-require 'reunion/account_merge'
-require 'reunion/account_reconcile'
-require 'reunion/expectations'
 
+require 'reunion/organization'
+require 'reunion/organization_transfers'
+require 'reunion/standard_file_locator'
 
-require 'reunion/output'
-require 'reunion/transfers'
+require 'reunion/bank_account'
+require 'reunion/bank_account_merge'
+require 'reunion/bank_account_reconcile'
+
+require 'reunion/input_file'
+
+require 'reunion/transaction'
+require 'reunion/overrides'
 require 'reunion/rules'
 
+
+require 'reunion/expectations'
+require 'reunion/output'
 require 'reunion/vendors'
-require 'reunion/overrides'
-require 'reunion/organization'
