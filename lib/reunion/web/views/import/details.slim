@@ -26,8 +26,12 @@
 
 
 - if file.transactions
+  ruby: 
+    invalid = file.invalid_transactions.map{|t| {invalid: true}.merge(t)}
+    txns = file.transactions.map{|t| {key: t[:subindex] ? t.lookup_key : nil}.merge(t.data)}
+    stmnts = file.statements.map{|t| {}.merge(t.data)}
 
-  - @rows = [file.invalid_transactions.map{|t| {invalid: true}.merge(t)},[file.transactions, file.statements].flatten.map{|t| t.data}].flatten
+  - @rows = [invalid,txns, stmnts].flatten
   - @cols = @rows.map{|h|h.keys}.flatten.uniq.compact - [:account_sym, :priority, :source, :subindex]
 
   h3 Displaying 
@@ -39,11 +43,16 @@
     = file.account.name
   table.table.table-condensed
     tr
+      th _
       - @cols.each do |c|
         th
           = c
     - @rows.each do |r|
       tr class=(r[:invalid] ? "danger" : r[:discard] ? "warning" : "success")
+        td
+          - if r[:key]
+            a href=("/transaction/" + r[:key])
+              | go
         - @cols.each do |c|
           td
             = ([:amount, :balance, :balance_after].include?(c) && r[c]) ? "%.2f" % r[c] : r[c]

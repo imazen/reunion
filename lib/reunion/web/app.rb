@@ -59,6 +59,10 @@ module Reunion
       get '/import/sources' do
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 
+      
+      get '/import/sources/:digest' do |digest|
+        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.select{|f| f.path_account_digest == digest}.first}}
+      end 
 
       get '/bank' do
         slim :'bank/index', {layout: :layout, :locals => {:bank_accounts => org.bank_accounts}}
@@ -69,9 +73,6 @@ module Reunion
       end
 
 
-      get '/import/sources/:digest' do |digest|
-        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.select{|f| f.path_account_digest == digest}.first}}
-      end 
 
       get '/transfers' do
         slim :unmatched_transfers, {layout: :layout, :locals => {:query => ""}}

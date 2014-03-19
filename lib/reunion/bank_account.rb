@@ -11,7 +11,7 @@ module Reunion
       @shadow_transaction_filters = []
     end
 
-    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies
+    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
 
     attr_accessor :input_files, :transactions, :statements, :final_discrepancy
 
@@ -24,6 +24,9 @@ module Reunion
       @shadow_transaction_filters << filter
     end 
 
+    def drop_transactions_before(date)
+      @truncate_before = date
+    end 
 
     #Finds any transactions in 'secondary_files' that have a similar transaction in primary_files (same date and amount)
     #returns an array of transactions
@@ -73,8 +76,18 @@ module Reunion
         overlapped.each{|t| t[:discard] = true; t[:discard_reason] = "Transaction (from #{pair[:keep]} overlapped one parsed with #{pair[:discard]}"}
       end
 
+      #Concatenate account transactions
+      txns = @input_files.map{|af| af.transactions}.flatten.compact
+
+      #Exclude transactions prior to cut-off date
+      txns.each do |t|
+        if t.date < truncate_before
+          t[:discard] = true; t[:discard_reason] = "Dropping transactions prior to " + truncate_before.strftime("%Y-%m-%d")
+        end
+      end if truncate_before
+
       #Exclude discarded transactions
-      txns = @input_files.map{|af| af.transactions}.flatten.compact.select{|t| t[:discard].nil?}
+      txns = txns.select{|t| t[:discard].nil?}
 
       #Merge duplicate transactions from different sources
       txns = merge_duplicate_transactions(txns)
