@@ -4,11 +4,15 @@ module Reunion
 
   describe 'rule DSL' do
 
+    before do
+      schema = TransactionSchema.new
+      syntax = StandardRuleSyntax.new(schema)
+      @rules = Rules.new(syntax)
+    end
+
     describe 'mixed block and chained rules' do
       it 'should produce rules of the correct chain length' do
-        r = Rules.new
-
-        r.add do 
+        @rules.add do 
           tags :tag_one do
             tag :action_one
             tags(:tag_two).tags(:tag_three).tag :action_two
@@ -16,11 +20,11 @@ module Reunion
           end 
         end 
 
-        assert_equal [2,4,3], r.rules.map{|a|a.count}
+        assert_equal [2,4,3], @rules.rules.map{|a|a.count}
       end 
     end 
     it 'should evaluate prefix matches' do
-      r = Rules.new
+      r = @rules
       r.match("^PREFIX ").tag(:found)
       txns = [Transaction.new({:description => "PREFIX suffix"})]
       RuleEngine.new(r).run(txns)
@@ -28,7 +32,7 @@ module Reunion
     end 
 
     it 'should evaluate exact matches' do
-      r = Rules.new
+      r = @rules
       r.match("EXACT").tag(:found)
       txns = [Transaction.new({:description => "EXACT"})]
       RuleEngine.new(r).run(txns)
@@ -36,7 +40,7 @@ module Reunion
     end 
 
     it 'should evaluate case insensitive' do
-      r = Rules.new
+      r = @rules
       r.match("EXACT").tag(:found)
       txns = [Transaction.new({:description => "EXaCT"})]
       RuleEngine.new(r).run(txns)
@@ -44,7 +48,7 @@ module Reunion
     end 
 
     it 'should evaluate regexen' do
-      r = Rules.new
+      r = @rules
       r.match([/exa?c?t?/i, /ex/i]).tag(:found)
       txns = [Transaction.new({:description => "EXaCT"})]
       RuleEngine.new(r).run(txns)
@@ -52,7 +56,7 @@ module Reunion
     end 
 
   end
-
+=begin
   describe 'string match evaluator' do
     it 'should evaluate prefix matches' do
       assert Rule.new([]).is_match ["^PREFIX "], ["PREFIX suffix"], nil
@@ -80,9 +84,11 @@ module Reunion
       assert Rule.new([]).is_match [->(t){t.start_with?("E")}], ["EXACT"], nil
     end 
   end 
+=end 
   describe 'default vendors' do
     it 'should parse' do 
-      v = Vendors.new
+
+      v = Vendors.new(StandardRuleSyntax.new(TransactionSchema.new))
       v.add_default_vendors
       re = RuleEngine.new(v)
     end 
@@ -91,8 +97,9 @@ module Reunion
     
     it 'should work' do
 
-
-      r = Rules.new 
+      schema = TransactionSchema.new
+      syntax = StandardRuleSyntax.new(schema)
+      r = Rules.new(syntax)
 
       r.add do
         for_tags(:b).set_tag :c

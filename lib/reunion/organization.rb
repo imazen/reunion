@@ -4,9 +4,11 @@ module Reunion
     #schema
 
   
-    attr_reader :bank_accounts, :root_dir
+    attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax
 
     def configure
+      @schema = TransactionSchema.new
+      @syntax = StandardRuleSyntax.new(@schema)
     end
 
     def locate_input
@@ -14,12 +16,12 @@ module Reunion
 
     def load_and_merge
       bank_accounts.each do |a|
-        a.load_and_merge
+        a.load_and_merge(schema)
         a.reconcile
       end
       @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
     end 
-    attr_reader :all_transactions,  :overrides_path
+    attr_reader :all_transactions 
 
     
     def ensure_loaded
@@ -49,7 +51,7 @@ module Reunion
       rule_set_descriptors.map do |d|
         full_path = File.join(root_dir, d[:path])
         contents = File.read(full_path)
-        r = Rules.new
+        r = Rules.new(syntax)
         r.instance_eval(contents, full_path)
         
         {full_path: full_path, 

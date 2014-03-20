@@ -63,7 +63,7 @@ class Reunion::BankAccount
 
         if has_primary_txn
           subgroup.each{|t| t.delete(:discard_if_unmerged)}
-          subgroup.inject(Reunion::Transaction.new){|acc, current| acc.merge_transaction(current)}
+          subgroup.inject(Reunion::Transaction.new(schema: schema)){|acc, current| acc.merge_transaction(current)}
         else 
           subgroup
         end 

@@ -5,21 +5,14 @@ module Reunion
     def parse(text)
     end
 
-    def parse_and_normalize(text)
+    def parse_and_normalize(text, schema)
       results = parse(text)
       transactions = results[:transactions]
       transactions.each do |t|
-        begin
-          t[:date] = t[:date].is_a?(String) ? Date.parse(t[:date]) : t[:date]
-        rescue ArgumentError 
-        end 
-        t[:tax_expense] = nil if t[:tax_expense].to_s.empty?
-        t[:tax_expense] = t[:tax_expense].to_sym unless t[:tax_expense].nil?
-        t.delete(:tax_expense) if t[:tax_expense].nil?
-        #collapse whitespace and trim whitespace in descriptions
-        t[:description] = t[:description].gsub(/\s+/," ").strip unless t[:description].nil?
+        t[:schema] = schema
+        schema.normalize(t)
       end 
-      invalid_transactions = transactions.select{|t| t[:date].is_a?(String)}
+      invalid_transactions = transactions.select{|t| schema.is_broken?(t)}
       transactions -= invalid_transactions
       results[:invalid_transactions] = invalid_transactions
 
@@ -29,19 +22,13 @@ module Reunion
         transactions.reverse!
       end
 
-      transactions = transactions.map do |t| 
-        t2 = Transaction.new 
-        t2.data = t
-        t2
+      results[:transactions] = transactions = transactions.map do |t| 
+        Transaction.new(schema:schema, from_hash: t)
       end
-      results[:statements] ||= []
 
-       results[:statements] =  results[:statements].map do |s|
-        s2 = Statement.new
-        s2.data = s
-        s2
+      results[:statements] = (results[:statements] || []).map do |s|
+        Statement.new(from_hash: s)
       end
-      results[:transactions] = transactions
 
       results
     end
@@ -295,7 +282,7 @@ module Reunion
               primary[:balance_after] = to_txn[:balance_after]
               transactions.delete(to_txn)
               transactions.delete(from_txn)
-              puts "Flattened " +  Transaction.new(primary).to_long_string
+              puts "Flattened " +  Transaction.new(from_hash: primary).to_long_string
             end 
         
         end
@@ -308,9 +295,9 @@ module Reunion
 
       refd.each do |primary|
         puts "\n"
-        puts Transaction.new(primary).to_long_string
+        puts Transaction.new(from_hash: primary).to_long_string
         with_refs.select{|t| t[:ref_id] == primary[:id]}.each do |reft|
-          puts Transaction.new(reft).to_long_string
+          puts Transaction.new(from_hash: reft).to_long_string
         end
       end 
 

@@ -7,9 +7,9 @@ class Reunion::InputFile
     Digest::SHA1.hexdigest(path.to_s + "|" + (account.nil? ? "nil" : account.permanent_id.to_s))
   end
 
-  def load
+  def load(schema)
     text = IO.read(full_path)
-    results = parser.new.parse_and_normalize(text)
+    results = parser.new.parse_and_normalize(text, schema)
 
     @transactions = results[:transactions] || []
     @invalid_transactions = results[:invalid_transactions] || []

@@ -3,8 +3,9 @@ module Reunion
   class TxnBase
     extend Forwardable
 
-    def initialize
-      @data = {}
+    def initialize(schema: nil, from_hash: {})
+      @data = from_hash.is_a?(Hash) ? from_hash.clone : {} 
+      @data[:schema] = schema unless schema.nil?
     end 
 
     attr_accessor :data
@@ -33,14 +34,9 @@ module Reunion
 
   class Transaction < TxnBase
 
-    def initialize(from_hash = nil)
-      @data = from_hash.is_a?(Hash) ? from_hash.clone : {}
-      @data[:tags] ||= []
-    end 
-    
     delegated_reader :id, :amount, :description, :tags, :balance_after, :vendor, :client, :account_sym
 
-    delegated_reader :transfer, :transfer_pair, :discard_if_unmerged, :priority
+    delegated_reader :transfer, :transfer_pair, :discard_if_unmerged, :priority, :schema
 
     def tags
       @data[:tags] ||= []
@@ -49,17 +45,13 @@ module Reunion
 
     def merge_transaction(other)
       new_data = data.merge(other.data) do |key, oldval, newval|
-        if key == :tags
-          ((oldval || []) + (newval || [])).uniq
-        elsif (key == :amount || key == :date) && newval != oldval
+        if (key == :amount || key == :date) && newval != oldval
           raise "Tried to merge two transactions with dissimilar amounts and dates"
         else
-          newval
+          schema[key] ? schema[key].merge(oldval,newval) : newval
         end 
       end 
-      result = Transaction.new
-      result.data = new_data
-      result
+      Transaction.new(from_hash: new_data)
     end
 
     def amount_str

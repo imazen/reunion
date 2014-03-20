@@ -13,7 +13,7 @@ module Reunion
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
 
-    attr_accessor :input_files, :transactions, :statements, :final_discrepancy
+    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema
 
 
     def add_parser_overlap_deletion(keep_parser: nil, discard_parser: nil)
@@ -41,10 +41,12 @@ module Reunion
       end.flatten
     end
 
-    def load_and_merge
+    def load_and_merge(schema)
+      @schema = schema || @schema
+
       #Per source file, 
       @input_files.each do |af|
-        af.load
+        af.load(schema)
 
         #Set default currency
         af.transactions.each{|t| t[:currency] ||= currency}

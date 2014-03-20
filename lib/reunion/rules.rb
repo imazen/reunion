@@ -1,42 +1,196 @@
 module Reunion
 
+  class RuleExpressionType
 
-=begin
-  class RuleSyntax
+    def initialize(&block)
+      @example = ""
+      @aliases = []
+      @is_action = false
+      @exclude = false
+      @field = nil
+      @name = nil
+
+      block.call(self) if block_given?
+    end 
+
+    attr_accessor :name, :aliases, :example, :field, :lambda_generator, :exclude, :is_action
+    
+    def all_names
+      [name, aliases].flatten.compact.uniq
+    end
+
+    def with_name(name)
+      @name = name
+      self
+    end
+
+    def with_aliases(aliases)
+      @aliases += [aliases].flatten
+      self
+    end 
+    def with_field(field)
+      @field = field
+      self
+    end
+
+    def with_exclude(exclude)
+      @exclude = exclude
+      self
+    end 
+
+    def clone
+      r = super
+      r.aliases = r.aliases.clone
+      r
+    end 
 
 
+    def self.match_all_expression
+      RuleExpressionType.new{|p|
+        p.lambda_generator = ->(args){ (args.nil? || args.empty?) ? ->(value){true} : "No arguments permitted"}
+      }
+    end 
 
-      if noun == :as_transfer
-        arg = arg.nil? ? true : arg
-        noun = :transfer
-      elsif noun.to_s.end_with? "tag"
-        field_is_array = true
-        noun = "#{noun}s".to_sym
-      end 
-
-      if field_is_array
-        txn[noun] ||= []
-        actual_change = !txn[noun].include?(arg)
-        txn[noun] << arg if actual_change
-      else
-        actual_change = txn[noun] != arg
-        txn[noun] = arg
-      end 
+    def self.match_by_lambda
+      RuleExpressionType.new{|p|
+        p.lambda_generator = ->(args){ (args.count == 1 && args.first.respond_to?(:call)) ? args.first : "Exactly one lambda argument required"}
+      }
+    end 
 
 
-    QUERY_NOUNS = %w{all none transfer transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
-    QUERY_VERBS = %w{for when exclude}
-    ACTION_NOUNS = %w{vendor client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
-    ACTION_VERBS = %W{set use}
- 
-    ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions, :with_focus => :set_vendor_tag, :for_focuses => :for_vendor_tags, :focuses => :for_vendor_tags}
+    def self.match_none_expression
+      RuleExpressionType.new{|p|
+        p.lambda_generator = ->(args){ (args.nil? || args.empty?) ? ->(value){false} : "No arguments permitted"}
+      }
+    end
+  end 
+
+
+  class RuleSyntaxDefinition
+
+    def initialize(schema)
+      @list = []
+      @schema = schema
+    end 
+
+    attr_accessor :schema, :list
+
+    def add_all_and_none
+      list << RuleExpressionType.match_none_expression.with_name(:none)
+      list << RuleExpressionType.match_all_expression.with_name(:all)
+      self
+    end
+
+    def add_txn_lambdas
+      list << RuleExpressionType.match_by_lambda.with_name(:for_transactions)
+      list << RuleExpressionType.match_by_lambda.with_name(:exclude_transactions).with_exclude(true)
+      self
+    end
+
+    def add_query_methods
+      schema.fields.each_pair do |k,v|
+        v.query_methods.each do |smd|
+
+          #If there is an equivalent set method, don't support the singular form as a query method
+          nouns = [k.to_s.gsub(/s\Z/i,"") + "s", v.readonly ? k.to_s : nil].compact
+          nouns = nouns.map{|noun|"#{noun}_#{smd.name}"} unless smd.name == :compare 
+
+          #Copy basics from SchemaMethodDefinition
+          query = RuleExpressionType.new{ |t|
+            t.lambda_generator = smd.lambda_generator
+            t.field = k
+            t.example = t.example
+          }
+
+          #Make a copy for the 'exclude version'
+          exclude = query.clone.with_exclude(true)
+          
+          query.with_aliases(nouns.map{|noun| "for_#{noun}".to_sym})
+          query.with_aliases(nouns.map{|noun| noun.to_sym})
+          query.with_aliases(nouns.map{|noun| "when_#{noun}".to_sym})
+
+          exclude.with_aliases(nouns.map{|noun| "exclude_#{noun}".to_sym})
+
+          list << query
+          list << exclude
+        end
+      end
+      self
+    end
+
+    def add_action_methods
+      schema.fields.each_pair do |k,v|
+        if !v.readonly
+          action = RuleExpressionType.new{|p|
+            p.lambda_generator = -> (args){
+              args = args.flatten
+              ->(txn){
+                old_value = txn[k]
+                new_value = v.merge(old_value, args)
+                changed = old_value != new_value
+                txn[k] = new_value if changed
+                changed
+              }
+            }
+            name = v.is_a?(TagsField) ? k.to_s.gsub(/s\Z/i,"") : k.to_s
+            p.with_aliases(["set", "use"].map{|verb| "#{verb}_#{name}".to_sym} + [name.to_sym])
+
+            p.name = "set_#{name}".to_sym
+            p.field = k
+            p.is_action = true
+          }
+          list << action
+        end 
+      end
+      self
+    end
+
+    def add_aliases
+      aliases = {
+        as_transfer: :set_transfer, 
+        year: :for_date_year, 
+        before: :for_date_before, 
+        after: :for_date_after, 
+        matches: :for_descriptions, 
+        match: :for_descriptions, 
+        for_match: :for_descriptions, 
+        for_matches: :for_descriptions, 
+        exclude: :exclude_transactions, 
+        :for => :for_transactions,
+        transactions: :for_transactions}
+
+      aliases.each_pair do |a, existing|
+        method = list.find{|e| e.all_names.include?(existing)}
+        raise "No method #{existing} found" if method.nil?
+        method.with_aliases(a)
+      end
+      self
+    end
+
+    def compute_lookup_table
+      not_sym = list.map{|e| e.all_names}.flatten.select{|v| !v.is_a?(Symbol)}
+      raise ("method aliases not a symbol: " + not_sym * " ") if not_sym.count > 0
+      lookup = Hash[list.map{|e| e.all_names.map{|name| [name.to_sym,e]}}.flatten(1)]
+    end 
 
   end 
-=end
+
+  class StandardRuleSyntax < RuleSyntaxDefinition
+    def initialize(schema)
+      super(schema)
+      add_all_and_none
+      add_txn_lambdas
+      add_query_methods
+      add_action_methods
+      add_aliases
+    end  
+  end
+
 
   class Rules
 
-    def initialize(stack = nil, parent = nil, block_scope = nil)
+    def initialize(syntax, stack = nil, parent = nil, block_scope = nil)
+      @syntax = syntax
       @block_scope = block_scope.nil? ? (stack.nil? && parent.nil?) : block_scope
       @parent = parent
       @children = []
@@ -47,7 +201,11 @@ module Reunion
       @block_result_handler = nil 
     end
 
-    attr_reader :rules
+    def rule_methods
+      @syntax_lookup_table ||= syntax.compute_lookup_table
+    end
+
+    attr_reader :rules, :syntax
     attr_accessor :block_scope
     attr_accessor :subtree_rules_added 
 
@@ -69,7 +227,6 @@ module Reunion
     end 
 
     def add_vendors(&block)
-
       @block_result_handler = :add_vendor_hash
       add(&block)
     end
@@ -98,11 +255,11 @@ module Reunion
           f = f.flatten.uniq.compact
           q = value[:query] || value[:q]
 
-          r = r.add_rule_part("for_match", q) unless q.nil?
-          r = r.add_rule_part("set_#{prefix}_description", d) unless d.nil?
-          r = r.add_rule_part("set_#{prefix}_tag", d) unless f.nil?
+          r = r.add_rule_part(:for_description, q) unless q.nil?
+          r = r.add_rule_part(:"set_#{prefix}_description", d) unless d.nil?
+          r = r.add_rule_part(:"set_#{prefix}_tag", d) unless f.nil?
         else
-          r = r.add_rule_part("for_match", value)
+          r = r.add_rule_part(:for_description, value)
         end 
         flush(true)
  
@@ -110,49 +267,11 @@ module Reunion
     end 
 
 
-    QUERY_NOUNS = %w{all none transfer ventures rebills transactions vendors clients vendor_tags client_tags vendor_descriptions client_descriptions tags tax_expenses subledgers match amount amount_over amount_under amount_between year date date_before date_after date_between}
-    QUERY_VERBS = %w{for when exclude}
-    ACTION_NOUNS = %w{vendor rebill venture client vendor_tag client_tag vendor_description client_description subledger tax_expense as_transfer tag}
-    ACTION_VERBS = %W{set use}
- 
-    ALIASES = {before: :for_date_before, after: :for_date_after, matches: :for_match, exclude: :exclude_transactions, :for => :for_transactions, :with_focus => :set_vendor_tag, :for_focuses => :for_vendor_tags, :focuses => :for_vendor_tags}
-
-    def parse_step_name(name)
-      name = name.to_s
-      result = {}
-      is_query = query_method_names.include?(name)
-      is_action = action_method_names.include?(name)
-      verb = (QUERY_VERBS + ACTION_VERBS).find{|v| name.start_with?(v + "_")}
-      noun = name[(verb.length + 1)..-1] unless verb.nil? 
-      if verb.nil?
-        verb = 'for' if QUERY_NOUNS.include?(name)
-        verb = 'set' if ACTION_NOUNS.include?(name)
-        noun = name unless verb.nil?
-      end 
-
-      raise "Failed to parse rule name '#{name}'." unless (is_query || is_action) && verb != nil && noun != nil 
-      {is_query: is_query,
-       is_action: is_action,
-        verb: verb.to_sym,
-        noun: noun.to_sym}
-    end 
-
-    def query_method_names
-      (QUERY_VERBS.map{|v| QUERY_NOUNS.map{|n| v + "_" + n}}.flatten + QUERY_NOUNS)
-    end 
-    def action_method_names
-      (ACTION_VERBS.map{|v| ACTION_NOUNS.map{|n| v + "_" + n}}.flatten + ACTION_NOUNS)
-    end 
-
-    def dynamic_method_name_symbols
-      @@cached_dynamics ||= Set.new((query_method_names + action_method_names + ALIASES.keys).map{|s|s.to_sym})
-    end 
-
     def respond_to?(method_name)
-      dynamic_method_name_symbols.include?(method_name) || super(method_name)
+      rule_methods.has_key?(method_name.to_sym) || super(method_name)
     end 
     def method_missing(meth, *args, &block)
-      if dynamic_method_name_symbols.include?(meth)
+      if rule_methods.has_key?(meth)
         add_rule_part(meth, *args, &block)
       else
         super(meth, *args, &block)
@@ -161,16 +280,23 @@ module Reunion
 
 
     def add_rule_part(method, *args, &block)
-      name = ALIASES[method] || method
-      part = parse_step_name(name).merge(
-              {name: name, 
-              method_name: method, 
+      type = rule_methods[method.to_sym]
+      raise "Unrecognized method #{method}; must be one of #{rule_methods.keys * ' '}" if type.nil?
+      part = {name: method, 
+              field: type.field,
+              method_name: type.name, 
               arguments: args, 
-              stacktrace: caller(2)})
+              stacktrace: caller(2),
+              definition: type,
+              is_action: type.is_action,
+              is_query: !type.is_action,
+              lambda: type.lambda_generator.call(args)}
+  
+      raise part[:lambda] unless part[:lambda].respond_to?(:call)
 
       flush(false) if block_scope
       newstack = @stack + [part]
-      child_scope = Rules.new(newstack, self, !block.nil?)
+      child_scope = Rules.new(syntax, newstack, self, !block.nil?)
       @children << child_scope
 
       #if block is specified, it's just part of a chain, not an endpoint
@@ -213,27 +339,6 @@ module Reunion
         end
       end 
     end 
-
-
-
-    # mention (add rule commentary)
-    # when (condition on txn)
-    # - after/before/between (date)
-    # - name=vale
-    # - lambda
-    # - match (description)
-    # set (action on matching txn)
-    # - name=value
-    # - mark_as_transfer
-    # - vendor
-
-    #Defining Expectations
-    # Time interval
-    # transaction qty. per interval
-    # total cost per interval
-    # per vendor
-
-
   end
 
   class Rule
@@ -245,31 +350,8 @@ module Reunion
       @chain = chain_array 
       @disabled = false
 
-      @filters = chain.select{|i| i[:is_query]}.each do |f|
-        noun = f[:noun]
-        args = f[:arguments]
-        message = nil
-        if [:all, :none, :transfers].include?(noun)
-          message = "does not accept any parameters." if !args.empty?
-        elsif noun == :date_between
-          message = "requires 2 parameters. Received #{args.length}." if args.length == 2
-        elsif [:date_before, :date_after].include?(noun)
-          message = "requires 1 date parameter." if args.length != 1
-        elsif noun == :transactions
-          message = "requires 1 lambda parameter" if (args.length != 1 || args.respond_to?(:call))
-        elsif args.empty?
-          message = "requires 1 or more parameters."
-        end 
-        puts "Rule disabled. #{f[:method_name]} #{message} #{f[:stacktrace]}" unless message.nil?
-        @disabled = true unless message.nil? 
-      end 
-      @actions = chain.select{|i| i[:is_action]}.each do |a|
-
-        args = a[:arguments]
-        needs_1 = a[:noun] != :as_transfer && args.length != 1
-        puts "Rule disabled. #{a[:method_name]} requires 1 parameter, given #{args.inspect}. #{a[:stacktrace]}" if needs_1
-        @disabled = true if needs_1
-      end
+      @filters = chain.select{|i| i[:is_query]}
+      @actions = chain.select{|i| i[:is_action]}
       
     end 
 
@@ -285,115 +367,14 @@ module Reunion
       @disabled
     end 
 
-    def evaluate_filter(f, txn)
-      result = evaluate_filter_noun(f,txn)
-      return f[:verb] == :exclude ? !result : result
-    end 
-
-    def to_date_mjd(value)
-      value.is_a?(String) ? Date.parse(value).mjd : value.mjd
-    end
-
-
-    def evaluate_filter_noun(f, txn)
-
-      noun = f[:noun]
-      args = f[:arguments]
-
-      a = args.first
-
-      #all none transfer
-      return false if noun == :none
-      return true if noun == :all
-      return !!txn[:transfer] if noun == :transfers
-
-      return txn.amount == a if noun == :amount
-      return txn.amount > a if noun == :amount_over
-      return txn.amount < a if noun == :amount_under
-      return txn.amount >= args.min && txn.amount <= args.max if noun == :amount_between
-
-
-      return txn.date.year == a.is_a?(String) ? Date.parse(a).year : a.is_a?(Date) ? a.year : nil if noun == :year
-      return txn.date.mjd == to_date_mjd(a) if noun == :date
-      return txn.date.mjd > to_date_mjd(a) if noun == :date_after
-      return txn.date.mjd < to_date_mjd(a) if noun == :date_before
-      return txn.date.mjd >= args.map(&to_date_mjd).min && txn.date <= args.map(&to_date_mjd).max if noun == :date_between
-      
-      #transactions
-      return args.first.call(txn) if noun == :transactions
-
-    
-      if [:vendors, :clients, :client_tags, :vendor_tags, :client_descriptions, :vendor_descriptions, :tags, :tax_expenses, :subledgers, :match].include? noun
-        if noun == :match
-          data = txn[:description]
-        elsif !noun.to_s.end_with?("tags") && noun.to_s.end_with?("s")
-          data = txn[noun.to_s[0..-2].to_sym]
-        else
-          data = txn[noun]
-        end 
-        return is_match(args,data,f)
-      else
-        raise "Unexpected filter noun #{noun}"
-      end
-      false
-    end 
-
-    def is_match(query_arguments, data, filter)
-      a = query_arguments.flatten
-      data = (data.is_a?(Array) ? data : [data]).flatten
-      a.any? do |query|
-        data.any? do |value|
-          case
-          when query.is_a?(Regexp) 
-            query.match(value) 
-          when query.is_a?(String) && query.start_with?("^")
-            value.downcase.start_with?(query[1..-1].downcase)
-          when query.is_a?(String) && query.length > 0 
-            query.casecmp(value) == 0
-          when query.is_a?(Symbol) 
-            query == value
-          when query.respond_to?(:call) 
-            query.call(value)
-          else
-            trace = filter[:stacktrace] * "\n"
-            puts "Unknown query type #{query.class} #{trace}"
-            false
-          end
-        end
-      end 
-    end 
-
-    def apply_action(action, txn)
-      noun = action[:noun]
-      args = action[:arguments]
-      arg = args.first
-      actual_change = false
-      field_is_array = false
-
-      if noun == :as_transfer
-        arg = arg.nil? ? true : arg
-        noun = :transfer
-      elsif noun.to_s.end_with? "tag"
-        field_is_array = true
-        noun = "#{noun}s".to_sym
-      end 
-
-      if field_is_array
-        txn[noun] ||= []
-        actual_change = !txn[noun].include?(arg)
-        txn[noun] << arg if actual_change
-      else
-        actual_change = txn[noun] != arg
-        txn[noun] = arg
-      end 
-
-      #puts "#{action[:method_name]}(#{args * ','})" if actual_change
-      actual_change
-    end 
     def matches?(txn)
       return false if disabled
       #byebug
-      matches = @filters.all?{|f| evaluate_filter(f,txn)}
+      matches = @filters.all? do |f| 
+        result = f[:lambda].call(f[:field] ? txn[f[:field]] : txn)
+        result = !result if f[:exclude] 
+        result
+      end 
       @matched_transactions ||= []
       @matched_transactions << txn if matches
       matches
@@ -408,7 +389,7 @@ module Reunion
       @modified_transactions << txn
       actual_change = false
       @actions.each do |action|
-        actual_change = true if apply_action(action,txn)
+        actual_change = true if action[:lambda].call(txn)
       end
       @changed_transactions << txn if actual_change
       actual_change

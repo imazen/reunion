@@ -30,6 +30,7 @@ end
 module Reunion
 end
 
+require 'reunion/schema'
 require 'reunion/parsers'
 
 require 'reunion/organization'
