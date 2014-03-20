@@ -1,8 +1,8 @@
-# Reunion - Do your accounting in a single day
+# Reunion - do your accounting in a single day
 
-Reunion both a library and local webapp for repeatable accounting, expense categorization, and reporting. 
+Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
 
-Produce tax expense reports with evidence already attached - eliminate audit anxiety.
+Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached. 
 
 All work is described in the form of input transaction files, override files, and logic rules.
 
@@ -17,7 +17,7 @@ Can be re-run at any time when logic or categorization rules need to be correcte
 * Reconcile against monthly balances to prove correctness
 * Customize your schema, then define your rules in clean DSL.
 * Store manual corrections as a set of deltas. 
-* Reunion :heart: Git - **See diffs of everything that changes** Know exactly what a new file or rule changes.
+* Reunion :heart: Git - **See diffs of everything that changes** &mdash; know exactly what a new file or rule changes.
 
 ## Stages
 
