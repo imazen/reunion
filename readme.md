@@ -2,7 +2,7 @@
 
 Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
 
-Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached. 
+**Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached.**
 
 All work is described in the form of input transaction files, override files, and logic rules.
 
