@@ -1,4 +1,4 @@
-# Reunion - do your accounting in a single day
+# Reunion - do your accounting in a day
 
 Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
 
