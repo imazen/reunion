@@ -5,6 +5,7 @@ module Reunion
   describe OverrideSet do
 
     before do
+     
       @txns = []
       @txns << Transaction.new({:date => Date.parse('2014-01-01'), 
                                 :amount => BigDecimal.new("20.00"),

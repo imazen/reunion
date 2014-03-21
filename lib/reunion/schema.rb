@@ -30,6 +30,15 @@ module Reunion
     end
   end 
 
+class Struct < ::Struct
+
+  # allow keyword arguments for Structs
+  def initialize(*args, **kwargs)
+    param_hash = kwargs.any? ? kwargs : Hash[ members.zip(args) ]
+    param_hash.each { |k,v| self[k] = v }
+  end
+
+end
 
   class StatementSchema < Schema
     def initialize(fields = {})
@@ -38,15 +47,22 @@ module Reunion
     end
   end
 
-  class SchemaMethodDefinition
-    def initialize(name, example, lambda_generator, &block)
-      @name = name
-      @lambda_generator = lambda_generator
-      @example = example
-      block.call(self) if block_given?
-    end 
-    attr_accessor :name, :lambda_generator, :example
-  end 
+  SchemaMethodDefinition = Struct.new(:schema_field, :name, :example, :build, :prep_data) do
+    def self.all
+      SchemaMethodDefinition.new(nil, :all, "", ->(field, args){Re::Yes.new})
+    end
+
+    def self.none
+      SchemaMethodDefinition.new(nil, :none, "", ->(field, args){Re::Not.new(Re::Yes.new)})
+    end
+
+    def self.txn_lambda
+      SchemaMethodDefinition.new(nil, :none, "", ->(field, args){ Re::Cond.new(nil, :lambda, args.first)})
+    end
+  end
+  
+
+   
   class TransactionSchema < Schema
 
     def initialize(fields = {})
@@ -97,19 +113,13 @@ module Reunion
       newvalue
     end
 
-    def query_methods
-      [SchemaMethodDefinition.new(:compare, "[either,or]|compareto",
-         ->(args){
-          expected = args.flatten
-          if expected.length == 1
-            expected = expected.first
-            return expected.respond_to?(:call) ? expected : ->(v){v == expected}
-          else
-            return ->(v){expected.include?(v)}
-          end 
+   def query_methods
+      [SchemaMethodDefinition.new(
+        schema_field: self,
+        build: ->(field, args){
+          Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field, :lambda, arg) : Re::Cond.new(field, :eq, normalize(arg)) })
         })]
     end 
-
   end 
 
 
@@ -125,6 +135,7 @@ module Reunion
       SymbolField.to_symbol(value)
     end
 
+ 
   end
 
   class UppercaseSymbolField < SymbolField
@@ -157,16 +168,11 @@ module Reunion
       [oldvalue,newvalue].flatten.compact.uniq
     end
 
-    def query_methods
-      [SchemaMethodDefinition.new(:compare, "[either,or]|compareto",
-         ->(args){
-          expected = args.flatten
-          if expected.length == 1
-            expected = expected.first
-            return expected.respond_to?(:call) ? ->(v){ v.any?(&expected)} : ->(v){v.include?(expected)}
-          else
-            return ->(v){!(expected & v).empty?}
-          end 
+   def query_methods
+      [SchemaMethodDefinition.new(
+        schema_field: self,
+        build: ->(field, args){
+          Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field, :lambda, arg) : Re::Cond.new(field, :include, SymbolField.to_symbol(arg)) })
         })]
     end 
 
@@ -201,13 +207,15 @@ module Reunion
       nil
     end
 
-    def query_methods
-      [SchemaMethodDefinition.new(:compare, "[either,or]|compareto",
-         ->(args){
+   def query_methods
+      [SchemaMethodDefinition.new(
+        schema_field: self,
+        build: ->(field, args){
           expected = args.first.nil? ? true : args.first
-          ->(v){v == expected}
+          Re::Cond.new(field, :eq, expected)
         })]
     end 
+
   end 
 
 
@@ -226,31 +234,29 @@ module Reunion
     end
 
     def query_methods
-      [SchemaMethodDefinition.new(:compare, "[20.00,2.00]|5.00",
-         ->(args){
-          expected = args.flatten
-          if expected.length == 1
-            expected = expected.first
-            return expected.respond_to?(:call) ? expected : ->(v){v == expected}
-          else
-            return ->(v){expected.include?(v)}
-          end 
+      [SchemaMethodDefinition.new(
+        schema_field: self,
+        name: :compare, example: "[20.00,2.00]|5.00",
+        build: ->(field, args){
+          Re::Or.new(args.flatten.map{|arg| 
+            arg.respond_to?(:call) ? 
+              Re::Cond.new(field, :lambda, arg) : 
+              Re::Cond.new(field, :eq, normalize(arg)) })
         }),
-      SchemaMethodDefinition.new(:above, "5.00",
-         ->(args){
-          expected = args.first
-          ->(v){v > expected}
+      SchemaMethodDefinition.new(schema_field: self, name: :above, example: "5.00",
+        build: ->(field, args){
+          Re::Cond.new(field, args.first, :gt, normalize(arg))
         }),
-      SchemaMethodDefinition.new(:below, "5.00",
-         ->(args){
-          expected = args.first
-          ->(v){v < expected}
+      SchemaMethodDefinition.new(self, :below, "5.00",
+         ->(field, args){
+          Re::Cond.new(field, args.first, :lt, normalize(arg))
         }),
-      SchemaMethodDefinition.new(:between, "5.00",
-         ->(args){
+      SchemaMethodDefinition.new(self, :between, "5.00",
+         ->(field, args){
+          args = args.map{|v| normalize(v)}
           low = args.min
           high = args.max
-          ->(v){v >= low && v <= high}
+          Re::Cond.new(field, :between_inclusive, [low, high]) 
         })
       ]
     end 
@@ -276,49 +282,41 @@ module Reunion
         raise "Invalid date #{v.inspect}" unless v.is_a?(Date)
         v.mjd
       end
-      [SchemaMethodDefinition.new(:year, "[2013,2014]|2012",
-         ->(args){
-          expected = args.flatten
-          if expected.length == 1
-            expected = expected.first
-            if expected.respond_to? :call 
-              expected
-            else
-              expected = Integer(expected)
-              ->(v){v.year == expected}
-            end
-          else
-            expected = expected.map{|v| Integer(v)}
-            ->(v){expected.include?(v.year)}
-          end
+      prep_mjd = ->(field, value, target){
+            target["#{field}.mjd".to_sym] = value.nil? ? nil : to_date_mjd.call(value)
+          }
+      [SchemaMethodDefinition.new(schema_field: self, name: :year, example: "[2013,2014]|2012",
+        prep_data: ->(field, value, target){
+          target["#{field}.year".to_sym] = value.nil? ? nil : value.year 
+        },
+        build: ->(field, args){
+          field_name = "#{field}.year".to_sym
+          Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field_name,  :lambda, arg) : Re::Cond.new(field_name, :eq, normalize(arg).year) })
         }),
-        SchemaMethodDefinition.new(:compare, "['2012-04-01','2013-04-02']|Date.today|'2011-01-01'",
-         ->(args){
-          expected = args.flatten.map{|v| v.is_a?(String) ? Date.parse(v).mjd : v.is_a?(Date) ? v.mjd : v}
-          raise "Invalid date arguments" if expected.any?{|v| !v.respond_to?(:call) && !v.is_a?(Numeric)}
-          if expected.length == 1
-            expected = expected.first
-            return expected.respond_to?(:call) ? expected : ->(v){v.mjd == expected}
-          else
-            return ->(v){expected.include?(v.mjd)}
-          end 
+        SchemaMethodDefinition.new(
+         schema_field: self, name: :compare, example: "['2012-04-01','2013-04-02']|Date.today|'2011-01-01'",
+          prep_data: prep_mjd,
+          build: ->(field, args){
+            field_name = "#{field}.mjd".to_sym
+            Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field,  :lambda, arg) : Re::Cond.new(field_name, :eq, to_date_mjd.call(arg)) })
+          }),
+      SchemaMethodDefinition.new(schema_field: self, name: :after, example: "'2011-9-11'",
+        prep_data: prep_mjd,
+        build: ->(field, args){
+          Re::Cond.new("#{field}.mjd".to_sym, :gt, to_date_mjd.call(args.first))
         }),
-      SchemaMethodDefinition.new(:after, "'2011-9-11'",
-         ->(args){
-          expected = to_date_mjd.call(args.first)
-          ->(v){v.mjd > expected}
+      SchemaMethodDefinition.new(schema_field: self, name: :before, example: "'1965-01-01'",
+        prep_data: prep_mjd,
+        build: ->(field, args){
+          Re::Cond.new("#{field}.mjd".to_sym, :lt, to_date_mjd.call(args.first)) 
         }),
-      SchemaMethodDefinition.new(:before, "'1965-01-01'",
-         ->(args){
-          expected = to_date_mjd.call(args.first)
-          ->(v){v.mjd < expected}
-        }),
-      SchemaMethodDefinition.new(:between, "2011-01-01,2012-01-01",
-         ->(args){
+      SchemaMethodDefinition.new(schema_field: self, name: :between,example: "2011-01-01,2012-01-01",
+        prep_data: prep_mjd,
+        build: ->(field, args){
           args = args.flatten.map(&to_date_mjd)
           low = args.min
           high = args.max
-          ->(v){v.mjd >= low && v.mjd <= high}
+          Re::Cond.new("#{field}.mjd".to_sym, :between_inclusive, [low, high])
         })
       ]
     end 
@@ -327,32 +325,39 @@ module Reunion
 
   class StringField < SchemaField
     def normalize(value)
-      value.to_s.strip
+      value.nil? ? nil : value.to_s.strip
     end
 
 
     def query_methods
-      [SchemaMethodDefinition.new(:compare, "'case-insensitve-match'|/regexp/i|'^prefix'|['multiple','matches',/andregexps/i]",
-         ->(args){
-          expected = args.flatten
-          lambda do |value|
-            expected.any? do |query|
-              case
-              when query.is_a?(Regexp) 
-                !value.nil? && query.match(value) 
-              when query.is_a?(String) && query.start_with?("^")
-                !value.nil? && value.downcase.start_with?(query[1..-1].downcase)
-              when query.is_a?(String) && query.length > 0  
-                !value.nil? && query.casecmp(value) == 0
-              when query.respond_to?(:call) 
-                query.call(value)
+
+      norm_down = -> (val){
+        val = normalize(val)
+        val.nil? ? nil : val.downcase
+      }
+      [SchemaMethodDefinition.new(schema_field: self, name: :compare, 
+        example: "'case-insensitve-match'|/regexp/i|'^prefix'|['multiple','matches',/andregexps/i]",
+        prep_data: -> (field,value,target){
+          target["#{field}.downcase".to_sym] = norm_down.call(value)
+        },
+        build: ->(field, args){
+          field_name = "#{field}.downcase".to_sym
+          Re::Or.new(args.flatten.map{|arg|
+            if arg.is_a?(Regexp)
+              Re::Cond.new(field_name, :regex, arg)
+            elsif arg.respond_to?(:call)
+              Re::Cond.new(field, :lambda, arg)
+            else 
+              arg = norm_down.call(arg)
+              if arg && arg.start_with?("^")
+                Re::Cond.new(field_name,:prefix, arg[1..-1])
               else
-                raise "Unknown query type #{query.class}"
-                false
+                Re::Cond.new(field_name,:eq,arg)
               end
             end
-          end 
+          })
         })]
+
     end 
   end
 

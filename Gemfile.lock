@@ -5,14 +5,6 @@ GIT
     rerun (0.8.2)
       listen (~> 1.0.3)
 
-GIT
-  remote: git://github.com/slim-template/slim.git
-  revision: 62e2b1c706fa926db1199d9e297efed816018dd7
-  specs:
-    slim (2.0.2)
-      temple (~> 0.6.6)
-      tilt (>= 1.3.3, < 2.1)
-
 GEM
   remote: http://rubygems.org/
   specs:
@@ -53,8 +45,12 @@ GEM
       ffi (>= 0.5.0)
     rb-kqueue (0.2.2)
       ffi (>= 0.5.0)
+    ruby-prof (0.14.2)
     sinatra (1.0)
       rack (>= 1.0)
+    slim (2.0.2)
+      temple (~> 0.6.6)
+      tilt (>= 1.3.3, < 2.1)
     slop (3.4.7)
     temple (0.6.7)
     thin (1.6.1)
@@ -62,6 +58,7 @@ GEM
       eventmachine (>= 1.0.0)
       rack (>= 1.0.0)
     tilt (2.0.0)
+    triez (1.0.2)
     webrat (0.7.3)
       nokogiri (>= 1.2.0)
       rack (>= 1.0)
@@ -79,8 +76,10 @@ DEPENDENCIES
   rake
   rb-fsevent
   rerun!
+  ruby-prof
   sinatra
-  slim!
+  slim
   thin
   tilt
+  triez
   webrat

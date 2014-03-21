@@ -10,6 +10,8 @@ require 'set'
 require 'fileutils'
 require 'digest/sha1'
 require 'json'
+require 'triez'
+require 'ruby-prof'
 
 class Array
   def stable_sort_by (&block)
@@ -32,6 +34,8 @@ end
 
 require 'reunion/schema'
 require 'reunion/parsers'
+require 'reunion/condition_flattener'
+require 'reunion/decision_tree'
 
 require 'reunion/organization'
 require 'reunion/organization_transfers'
@@ -46,6 +50,7 @@ require 'reunion/input_file'
 require 'reunion/transaction'
 require 'reunion/overrides'
 require 'reunion/rules'
+require 'reunion/rules_engine'
 
 
 require 'reunion/expectations'

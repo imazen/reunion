@@ -25,9 +25,8 @@ h3 Show  rules
         td
           = r.matched_transactions.to_a.count
         td 
-          - r.filters.each do |f|
-            - if r.disabled
-              | [disabled]
+          = r.condition.inspect
+          /- r.filters.each do |f|
             | When: 
             = f[:noun]
             |   

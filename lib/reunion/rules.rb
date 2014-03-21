@@ -2,18 +2,19 @@ module Reunion
 
   class RuleExpressionType
 
-    def initialize(&block)
-      @example = ""
+    def initialize(smd: nil, &block)
+      @example = smd.nil? ? "" : smd.example
       @aliases = []
-      @is_action = false
+      @kind = :filter
       @exclude = false
       @field = nil
       @name = nil
+      @schema_method_definition = smd
 
       block.call(self) if block_given?
     end 
 
-    attr_accessor :name, :aliases, :example, :field, :lambda_generator, :exclude, :is_action
+    attr_accessor :name, :aliases, :field, :schema_method_definition, :exclude, :kind, :apply_action
     
     def all_names
       [name, aliases].flatten.compact.uniq
@@ -43,26 +44,6 @@ module Reunion
       r.aliases = r.aliases.clone
       r
     end 
-
-
-    def self.match_all_expression
-      RuleExpressionType.new{|p|
-        p.lambda_generator = ->(args){ (args.nil? || args.empty?) ? ->(value){true} : "No arguments permitted"}
-      }
-    end 
-
-    def self.match_by_lambda
-      RuleExpressionType.new{|p|
-        p.lambda_generator = ->(args){ (args.count == 1 && args.first.respond_to?(:call)) ? args.first : "Exactly one lambda argument required"}
-      }
-    end 
-
-
-    def self.match_none_expression
-      RuleExpressionType.new{|p|
-        p.lambda_generator = ->(args){ (args.nil? || args.empty?) ? ->(value){false} : "No arguments permitted"}
-      }
-    end
   end 
 
 
@@ -76,30 +57,29 @@ module Reunion
     attr_accessor :schema, :list
 
     def add_all_and_none
-      list << RuleExpressionType.match_none_expression.with_name(:none)
-      list << RuleExpressionType.match_all_expression.with_name(:all)
+      list << RuleExpressionType.new(smd: SchemaMethodDefinition.none).with_name(:none)
+      list << RuleExpressionType.new(smd: SchemaMethodDefinition.all).with_name(:all)
       self
     end
 
     def add_txn_lambdas
-      list << RuleExpressionType.match_by_lambda.with_name(:for_transactions)
-      list << RuleExpressionType.match_by_lambda.with_name(:exclude_transactions).with_exclude(true)
+      list << RuleExpressionType.new(smd: SchemaMethodDefinition.txn_lambda).with_name(:for_transactions)
+      list << RuleExpressionType.new(smd: SchemaMethodDefinition.txn_lambda).with_name(:exclude_transactions).with_exclude(true)
       self
     end
 
     def add_query_methods
       schema.fields.each_pair do |k,v|
         v.query_methods.each do |smd|
+          smd.name ||= :compare
 
           #If there is an equivalent set method, don't support the singular form as a query method
           nouns = [k.to_s.gsub(/s\Z/i,"") + "s", v.readonly ? k.to_s : nil].compact
-          nouns = nouns.map{|noun|"#{noun}_#{smd.name}"} unless smd.name == :compare 
+          nouns = nouns.map{|noun|"#{noun}_#{smd.name}"} unless smd.name == :compare
 
           #Copy basics from SchemaMethodDefinition
-          query = RuleExpressionType.new{ |t|
-            t.lambda_generator = smd.lambda_generator
+          query = RuleExpressionType.new(smd: smd){ |t|
             t.field = k
-            t.example = t.example
           }
 
           #Make a copy for the 'exclude version'
@@ -122,22 +102,20 @@ module Reunion
       schema.fields.each_pair do |k,v|
         if !v.readonly
           action = RuleExpressionType.new{|p|
-            p.lambda_generator = -> (args){
+            p.apply_action = -> (txn, args){
               args = args.flatten
-              ->(txn){
-                old_value = txn[k]
-                new_value = v.merge(old_value, args)
-                changed = old_value != new_value
-                txn[k] = new_value if changed
-                changed
-              }
+              old_value = txn[k]
+              new_value = v.merge(old_value, args)
+              changed = old_value != new_value
+              txn[k] = new_value if changed
+              changed
             }
             name = v.is_a?(TagsField) ? k.to_s.gsub(/s\Z/i,"") : k.to_s
             p.with_aliases(["set", "use"].map{|verb| "#{verb}_#{name}".to_sym} + [name.to_sym])
 
             p.name = "set_#{name}".to_sym
             p.field = k
-            p.is_action = true
+            p.kind = :action
           }
           list << action
         end 
@@ -282,18 +260,19 @@ module Reunion
     def add_rule_part(method, *args, &block)
       type = rule_methods[method.to_sym]
       raise "Unrecognized method #{method}; must be one of #{rule_methods.keys * ' '}" if type.nil?
+
+      conditions = type.kind == :action ? nil : type.schema_method_definition.build.call(type.field, args)
+      conditions = Re::Not(conditions) if type.exclude
+
       part = {name: method, 
-              field: type.field,
-              method_name: type.name, 
               arguments: args, 
               stacktrace: caller(2),
               definition: type,
-              is_action: type.is_action,
-              is_query: !type.is_action,
-              lambda: type.lambda_generator.call(args)}
+              is_action: type.kind == :action,
+              is_filter: type.kind == :filter,
+              conditions: conditions}
   
-      raise part[:lambda] unless part[:lambda].respond_to?(:call)
-
+      
       flush(false) if block_scope
       newstack = @stack + [part]
       child_scope = Rules.new(syntax, newstack, self, !block.nil?)
@@ -341,94 +320,4 @@ module Reunion
     end 
   end
 
-  class Rule
-    attr_accessor :chain
-    attr_accessor :disabled
-
-    def initialize(chain_array)
-
-      @chain = chain_array 
-      @disabled = false
-
-      @filters = chain.select{|i| i[:is_query]}
-      @actions = chain.select{|i| i[:is_action]}
-      
-    end 
-
-    def filters
-      @filters
-    end 
-
-    def actions
-      @actions
-    end 
-
-    def disabled?
-      @disabled
-    end 
-
-    def matches?(txn)
-      return false if disabled
-      #byebug
-      matches = @filters.all? do |f| 
-        result = f[:lambda].call(f[:field] ? txn[f[:field]] : txn)
-        result = !result if f[:exclude] 
-        result
-      end 
-      @matched_transactions ||= []
-      @matched_transactions << txn if matches
-      matches
-    end
-
-    attr_accessor :matched_transactions, :modified_transactions, :changed_transactions
-
-    def modify(txn)
-      return false if disabled
-      @modified_transactions ||= []
-      @changed_transactions ||= []
-      @modified_transactions << txn
-      actual_change = false
-      @actions.each do |action|
-        actual_change = true if action[:lambda].call(txn)
-      end
-      @changed_transactions << txn if actual_change
-      actual_change
-    end 
-
-  end 
-  class RuleEngine
-    attr_accessor :rules
-    def initialize(rules)
-      rules.flush(true)
-      @rules = rules.rules.map{|r| Rule.new(r)}
-    end
-
-    def run(transactions)
-      current_set = transactions
-      next_set = []
-      max_iterations = 3
-      max_iterations.times do |i|
-        break if current_set.empty?
-        next_set = current_set.select{|t| modify_txn(t)}
-        puts "#{next_set.length} of #{current_set.length} transactions modified. Rule count = #{rules.length}"
-        current_set = next_set
-      end
-    end 
-    def modify_txn(t)
-      modified = false
-      rules.each do |r| 
-        if r.matches?(t)
-          modified = r.modify(t) 
-        end 
-      end 
-      modified
-    end 
-    #Returns matching transactions grouped by rule
-    def find_matches(transactions)
-      rules.map do |r|
-        transactions.select{|t| r.matches?(t)}
-      end
-    end 
-
-  end 
 end 

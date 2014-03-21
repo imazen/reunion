@@ -63,16 +63,26 @@ module Reunion
 
 
     def apply_rules_and_overrides
-      @overrides = OverrideSet.load(overrides_path)
-      @overrides.apply_all(all_transactions)
-      @rule_sets = create_rule_sets
-      @rule_sets.each do |r|
-        r[:engine].run(all_transactions)
-      end
-      @overrides.apply_all(all_transactions)
-      @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select{|t| t[:transfer]}, all_transactions)
-      @unmatched_transfers = transfers.select{|t| t[:transfer_pair].nil?}
-
+      
+      #RubyProf.start
+      time = Benchmark.measure{
+        @overrides = OverrideSet.load(overrides_path)
+        @overrides.apply_all(all_transactions)
+        @rule_sets = create_rule_sets
+        @rule_sets.each do |r|
+          r[:engine].run(all_transactions)
+        end
+        @overrides.apply_all(all_transactions)
+        @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select{|t| t[:transfer]}, all_transactions)
+        @unmatched_transfers = transfers.select{|t| t[:transfer_pair].nil?}
+      }
+      result =  "Executed rules, transfer detection, and overrides in #{time}"
+      STDERR << result
+      #result = RubyProf.stop
+      #printer = RubyProf::FlatPrinter.new(result)
+      #printer.print(STDERR)
+      #require pry
+      #binding.pry
     end
 
     attr_reader :rule_sets

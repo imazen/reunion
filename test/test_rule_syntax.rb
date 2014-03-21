@@ -2,7 +2,7 @@ require 'minitest/autorun'
 require 'reunion'
 module Reunion
 
-  describe StandardRuleSyntax do
+  describe 'StandardRuleSyntaxStuff' do
 
     before do
       schema = Schema.new(
