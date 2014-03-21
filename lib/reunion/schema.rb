@@ -339,11 +339,11 @@ module Reunion
             expected.any? do |query|
               case
               when query.is_a?(Regexp) 
-                query.match(value) 
+                !value.nil? && query.match(value) 
               when query.is_a?(String) && query.start_with?("^")
-                value.downcase.start_with?(query[1..-1].downcase)
-              when query.is_a?(String) && query.length > 0 
-                query.casecmp(value) == 0
+                !value.nil? && value.downcase.start_with?(query[1..-1].downcase)
+              when query.is_a?(String) && query.length > 0  
+                !value.nil? && query.casecmp(value) == 0
               when query.respond_to?(:call) 
                 query.call(value)
               else
