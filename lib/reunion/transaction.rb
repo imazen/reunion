@@ -3,13 +3,13 @@ module Reunion
   class TxnBase
     extend Forwardable
 
-    def initialize(schema: nil, from_hash: {})
-      @data = from_hash.is_a?(Hash) ? from_hash.clone : {} 
+    def initialize(schema: nil, from_hash: {}, **args)
+      @data = from_hash.clone.merge(args)
       @data[:schema] = schema unless schema.nil?
     end 
 
     attr_accessor :data
-    def_delegators :@data, :size, :[], :[]=, :map, :each, :hash, :eql?, :delete, :key?
+    def_delegators :@data, :size, :[]=, :map, :each, :hash, :eql?, :delete, :key?
 
     def self.delegated_reader( *arr )
        arr.each do |a|
@@ -19,7 +19,11 @@ module Reunion
           end
         end
        end
-     end
+    end
+
+    def [](key)
+      @data[key]
+    end
 
     delegated_reader :date, :source 
 
