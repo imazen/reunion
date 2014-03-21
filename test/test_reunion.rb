@@ -5,8 +5,8 @@ module Reunion
   describe 'rule DSL' do
 
     before do
-      schema = TransactionSchema.new
-      syntax = StandardRuleSyntax.new(schema)
+      @schema = TransactionSchema.new
+      syntax = StandardRuleSyntax.new(@schema)
       @rules = Rules.new(syntax)
     end
 
@@ -26,7 +26,7 @@ module Reunion
     it 'should evaluate prefix matches' do
       r = @rules
       r.match("^PREFIX ").tag(:found)
-      txns = [Transaction.new({:description => "PREFIX suffix"})]
+      txns = [Transaction.new(schema: @schema,from_hash: {:description => "PREFIX suffix"})]
       RuleEngine.new(r).run(txns)
       assert_equal [:found], txns.first.tags
     end 
@@ -34,7 +34,7 @@ module Reunion
     it 'should evaluate exact matches' do
       r = @rules
       r.match("EXACT").tag(:found)
-      txns = [Transaction.new({:description => "EXACT"})]
+      txns = [Transaction.new(schema: @schema,:description => "EXACT")]
       RuleEngine.new(r).run(txns)
       assert_equal [:found], txns.first.tags
     end 
@@ -42,7 +42,7 @@ module Reunion
     it 'should evaluate case insensitive' do
       r = @rules
       r.match("EXACT").tag(:found)
-      txns = [Transaction.new({:description => "EXaCT"})]
+      txns = [Transaction.new(schema: @schema,  :description => "EXaCT")]
       RuleEngine.new(r).run(txns)
       assert_equal [:found], txns.first.tags
     end 
@@ -50,7 +50,7 @@ module Reunion
     it 'should evaluate regexen' do
       r = @rules
       r.match([/exa?c?t?/i, /ex/i]).tag(:found)
-      txns = [Transaction.new({:description => "EXaCT"})]
+      txns = [Transaction.new(schema: @schema, :description => "EXaCT")]
       RuleEngine.new(r).run(txns)
       assert_equal [:found], txns.first.tags
     end 
@@ -85,6 +85,7 @@ module Reunion
     end 
   end 
 =end 
+
   describe 'default vendors' do
     it 'should parse' do 
 
