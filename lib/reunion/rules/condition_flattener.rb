@@ -64,7 +64,7 @@ module Reunion
           next [e] if Cond === e
           raise "Error, unexpected type #{e}"
         end
-        STDERR << array_of_ors.inspect
+        #STDERR << array_of_ors.inspect
         array_of_ors.length > 1 ? array_of_ors.first.send(:product, *array_of_ors[1..-1]) : array_of_ors.flatten.map{|e| [e]}
       end 
 
