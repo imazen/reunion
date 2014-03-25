@@ -1,9 +1,10 @@
 module Reunion
   class SchemaField
-    def initialize(readonly: false, critical: false, default_value: nil)
+    def initialize(readonly: false, critical: false, default_value: nil, display_tags: [])
       @default_value = default_value
       @readonly = readonly
       @critical = critical
+      @display_tags = display_tags
     end 
     def normalize(value)
       value
@@ -13,7 +14,7 @@ module Reunion
       nil
     end 
 
-    attr_accessor :allowed_values, :value_required, :readonly, :critical, :default_value
+    attr_accessor :allowed_values, :value_required, :readonly, :critical, :default_value, :display_tags
 
     def validate(value)
       if allowed_values

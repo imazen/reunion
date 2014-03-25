@@ -22,7 +22,20 @@ module Reunion
       fields.each_pair do |k,v|
         row[k] = v.normalize(row[k])
       end
+      return row
     end 
+
+    def field_names_tagged(tag)
+      field_pairs_tagged(tag).map{|pair| pair[0]}
+    end
+
+    def field_pairs_tagged(tag)
+      fields.to_a.select{|pair| pair[1].display_tags.include?(tag)}
+    end
+
+    def fields_tagged(tag)
+      field_pairs_tagged(tag).map{|pair| pair[1]}
+    end
 
 
     def initialize(fields = {})
