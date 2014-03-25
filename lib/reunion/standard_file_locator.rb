@@ -34,7 +34,7 @@ module Reunion
         copies = matching_accounts.map do |a|
           copy = f.clone
           copy.account = a
-          a.input_files << copy unless copy.parser.nil?
+          a.input_files << copy unless copy.parser.nil? || a.nil?
           copy
         end
         copies ||= [f] #Don't forget input files without matching accounts
