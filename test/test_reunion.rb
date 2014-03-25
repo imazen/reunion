@@ -1,5 +1,7 @@
 require 'minitest/autorun'
 require 'reunion'
+require_relative 'test_vendors'
+
 module Reunion
 
   describe 'rule DSL' do

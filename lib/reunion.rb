@@ -32,10 +32,10 @@ end
 module Reunion
 end
 
-require 'reunion/schema'
-require 'reunion/parsers'
-require 'reunion/condition_flattener'
-require 'reunion/decision_tree'
+require 'reunion/schema/schema'
+require 'reunion/parsers/parsers'
+require 'reunion/rules/condition_flattener'
+require 'reunion/rules/decision_tree'
 
 require 'reunion/organization'
 require 'reunion/organization_transfers'
@@ -49,10 +49,9 @@ require 'reunion/input_file'
 
 require 'reunion/transaction'
 require 'reunion/overrides'
-require 'reunion/rules'
-require 'reunion/rules_engine'
+require 'reunion/rules/rules'
+require 'reunion/rules/rules_engine'
 
 
-require 'reunion/expectations'
+require 'reunion/rules/expectations'
 require 'reunion/output'
-require 'reunion/vendors'
