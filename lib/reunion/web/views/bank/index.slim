@@ -8,6 +8,10 @@ table.table.table-condensed
     th Input txn count
     th Final Txn count
     th Discrepancy
+    th Starting balance
+    th Last transaction
+    th Last statement
+    th Ending balance
   - bank_accounts.each do |b|
     tr
       th
@@ -23,3 +27,13 @@ table.table.table-condensed
       td
         a href="/bank/#{b.permanent_id}/reconcile"
           = "%.2f" % b.final_discrepancy
+      td
+        - if b.starting_balance && b.starting_balance_date
+          a href="/bank/#{b.permanent_id}/reconcile"
+            = "%.2f" % b.starting_balance + " on " + b.starting_balance_date.strftime("%Y-%m-%d")
+      td 
+        = b.last_transaction_date
+      th 
+        = b.last_balance_date ? b.last_balance_date.strftime("%Y-%m-%d") : "None"
+      th
+        = "%.2f" % b.ending_balance
