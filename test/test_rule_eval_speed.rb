@@ -12,7 +12,7 @@ module Reunion
 
       txns = []
 
-      8000.times do
+      500.times do
         txns << Transaction.new(schema:schema, date: Date.today, amount: 0,description: string = (0...rand(20) + 5).map { o[rand(o.length)] }.join )
       end 
 
@@ -22,13 +22,13 @@ module Reunion
       v.add_default_vendors
       re = RuleEngine.new(v)
 
-      RubyProf.start
+      #RubyProf.start
 
       re.run(txns)
 
-      result = RubyProf.stop
-      printer = RubyProf::GraphPrinter.new(result)
-      printer.print(STDERR)
+      #result = RubyProf.stop
+      #printer = RubyProf::GraphPrinter.new(result)
+      #printer.print(STDERR)
 
     end 
   end 

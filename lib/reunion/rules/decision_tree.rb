@@ -70,14 +70,14 @@ module Reunion
 
 
         def add_subnodes
-          sorted = components_by_reusability(@chains_touching, nil)
+          sorted = components_by_reusability(@chains_touching, parent.nil? ? nil : self)
           sorted.each do |info|
             add_subnodes_from_pairs(info.pairs)
           end
         end
 
         def add_subnodes_from_pairs(possible_pairs)
-          pairs = possible_pairs.select{|co,chain|chain.node == self || (chain.node == nil && parent == nil)}
+          pairs = possible_pairs.select{|condition,chain| chain.node == self || (chain.node == nil && parent == nil)}
           conditions = pairs.map{|co,chain|co}.uniq.compact
           if conditions.length == 1
             add_simple_subnode(conditions.first,pairs)
@@ -112,10 +112,12 @@ module Reunion
           p = DecisionNode.new(self)
           self.children << p
           h.each do |co,chains|
+            remaining_chains = chains.select{|chain| chain.node == self || (chain.node == nil && parent == nil)}
+            next if remaining_chains.count < 1
             h[co] = n = DecisionNode.new(p)
             n.comparator = :yes
-            n.chains_touching = chains
-            chains.each do |chain|
+            n.chains_touching = remaining_chains
+            remaining_chains.each do |chain|
               chain.conditions.delete(co)
               chain.node = n
               n.results << chain.result if chain.conditions.empty?
@@ -167,7 +169,7 @@ module Reunion
           when :gt
             d > @value
           when :between_inclusive
-            d >= @value[0] && d <= @value[1]
+            !d.nil? && d >= @value[0] && d <= @value[1]
           when :include
             d && d.include?(@value)
           when :regex
@@ -191,6 +193,7 @@ module Reunion
             results.each(&block)
             @children.each{|c|c.get_results(data,&block)}
           end
+
         end
 
         Stat = Struct.new(:counter, :pairs)

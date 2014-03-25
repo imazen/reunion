@@ -188,6 +188,16 @@ module Reunion
     attr_accessor :block_scope
     attr_accessor :subtree_rules_added 
 
+    def inspect
+      output = ""
+      rules.each do |r|
+        output << r.map{|h| {name: h[:name], arguments: h[:arguments] }}.inspect
+        output << "\n"
+      end
+      output
+    end
+
+
     def block_result_handler
       @block_result_handler || (@parent.nil? ? nil : @parent.block_result_handler) || :add_default_hash
     end 
