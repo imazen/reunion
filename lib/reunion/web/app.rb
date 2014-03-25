@@ -15,6 +15,8 @@ module Reunion
   module Web
     class App < ::Sinatra::Base
 
+      puts "App reloaded"
+
       set :root, File.dirname(__FILE__)
 
       attr_accessor :org
@@ -118,6 +120,7 @@ module Reunion
           keep = false if t.date < Date.parse('2013-03-16')
           keep = false if t.date > Date.parse('2014-03-19')
           keep = false if [:income, :owner_draw].include?(t[:tax_expense])
+          keep = false if t[:rebill] == :no
           keep
         end
       end 
@@ -150,7 +153,30 @@ module Reunion
         slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
       end 
 
+      post '/overrides/:id' do |id|
+        content_type :json
+        key = params[:key].downcase.to_sym
+        field = org.schema.fields[key]
+        value = field.normalize(params[:value])
 
+        txn = org.all_transactions.select{|t| t.lookup_key == id}.first
+
+        existing_override = org.overrides.by_digest(id) 
+
+        changes = existing_override.nil? ? {} : existing_override.changes
+        
+        oldval = changes[key] || txn[key]
+        if oldval != value
+          changes[key] = value
+          org.overrides.set_override(txn,changes)
+          change_made = true
+        end 
+        if change_made
+          org.overrides.save 
+          org.overrides.apply_all(org.all_transactions)
+        end
+        {change_made: change_made, normalized_value: value, id: id, key: key, warnings: field.validate(value)}.to_json
+      end
 
       get '/search/:query' do |query|
         results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
@@ -192,7 +218,7 @@ module Reunion
       post '/rules/repl' do
         content_type :json
         code = params[:ruby]
-        r = Rules.new
+        r = Rules.new(org.syntax)
 
         begin
           r.eval_string(code)
@@ -201,7 +227,7 @@ module Reunion
         end
 
         rs = RuleEngine.new(r)
-        {results: rs.find_matches(get_cached_books.all_transactions).flatten.map{|t| t.data}}.to_json
+        {results: rs.find_matches(org.all_transactions).flatten.map{|t| t.data}}.to_json
       end
 
       get '/transaction/:id' do |id|

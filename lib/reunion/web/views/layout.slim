@@ -34,9 +34,11 @@ html lang="en"
               li
                 a href="/bank" 2. Reconcile
               li
-                a href="/import/validate" Validate Schema
+                a href="/import/validate" Schema
               li 
                 a href="/rules" 3. Rules
+              li 
+                a href="/rules/repl" Repl
               li
                 a href="/overrides" 4. Correct
 
@@ -47,12 +49,12 @@ html lang="en"
               li
                 a href="/report" 7. Report
 
-    .container
+    /.container
 
       p
         == "Displaying transactions between #{get_date_from} to #{get_date_to}"
       /Inner layout or page renders here
-      == yield
+    == yield
 
 
 
