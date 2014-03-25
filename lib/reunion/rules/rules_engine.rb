@@ -78,6 +78,7 @@ module Reunion
       modified
     end 
     def find_matches(transactions)
+      prep_transactions(transactions)
       transactions.select do |t|
         matches = false
         @tree.get_results(t) do |rule|
