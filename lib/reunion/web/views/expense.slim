@@ -97,7 +97,7 @@ ul.nav.nav-pills
         th Count
         th Amount
         th Currency
-      - ["USD", "EUR"].each do |currency|
+      - [:USD, :EUR].each do |currency|
         - @filters.each do |name, lambda|
           - subset = all_txns.select(&lambda).select{|t| t[:currency] == currency || (t[:currency].nil? && currency == "USD")}
           tr
