@@ -103,7 +103,8 @@ module Reunion
         if !v.readonly
           action = RuleExpressionType.new{|p|
             p.apply_action = -> (txn, args){
-              args = args.flatten
+
+              args = v.is_a?(TagsField) ? args.flatten : args.first
               old_value = txn[k]
               new_value = v.merge(old_value, args)
               changed = old_value != new_value
