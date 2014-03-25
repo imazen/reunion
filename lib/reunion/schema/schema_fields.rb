@@ -9,6 +9,10 @@ module Reunion
       value
     end
 
+    def validate
+      nil
+    end 
+
     attr_accessor :allowed_values, :value_required, :readonly, :critical, :default_value
 
     def validate(value)
@@ -145,7 +149,7 @@ module Reunion
     end
 
     def format(value)
-      "%.2f" % value
+      value.nil? ? "" : ("%.2f" % value)
     end
 
     def query_methods
@@ -183,7 +187,7 @@ module Reunion
     end
 
     def format(value)
-      value.strftime("%Y-%m-%d")
+      value.nil? ? "" : value.strftime("%Y-%m-%d")
     end
     def validate(value)
       return "Date required. Found nil" if value_required && value.nil?

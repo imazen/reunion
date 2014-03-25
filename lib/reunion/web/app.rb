@@ -2,6 +2,15 @@ require "sinatra"
 require "slim"
 require "json"
 
+module Rack
+  class CommonLogger
+    def call(env)
+      # do nothing
+      @app.call(env)
+    end
+  end
+end
+
 module Reunion
   module Web
     class App < ::Sinatra::Base
@@ -64,6 +73,11 @@ module Reunion
         slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.select{|f| f.path_account_digest == digest}.first}}
       end 
 
+      get '/import/validate' do
+        validation_errors = org.all_transactions.map{|t| {txn: t, errors: t[:schema].validate(t)} }.select{|r| !r[:errors].nil?}
+        slim :'import/validate', {layout: :layout, :locals => {:errors => validation_errors}}
+      end 
+
       get '/bank' do
         slim :'bank/index', {layout: :layout, :locals => {:bank_accounts => org.bank_accounts}}
       end
@@ -80,13 +94,11 @@ module Reunion
 
       get '/transfers/unmatched' do
         results = filter_transactions(get_cached_books.unmatched_transfers)
-
         slim :unmatched_transfers, {:layout => :layout, :locals => {:results => results}}
       end
 
       get '/transfers/paired' do
         results = get_cached_books.transfer_pairs
-
         slim :transfer_pairs, {:layout => :layout, :locals => {:results => results}}
       end
 
@@ -153,6 +165,10 @@ module Reunion
         list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
         slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list, :txns => txns, :all_txns => all_txns}}
       end
+
+      set :dump_errors, true
+
+      set :show_exceptions, false
 
       get '/expense/:query' do |query|
         list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq

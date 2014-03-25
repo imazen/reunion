@@ -10,10 +10,12 @@ module Reunion
     end  
 
     def validate(row)
-      results = {}
-      fields.to_a do |pair|
-        pair[1].validate(row[pair[0]])
-      end.compact
+      results = []
+      fields.each_pair do |name, field|
+        result = field.validate(row[name])
+        results << {field:name, field_obj: field, message: result} if result
+      end
+      results.empty? ? nil : results
     end 
 
     def normalize(row)
@@ -21,6 +23,7 @@ module Reunion
         row[k] = v.normalize(row[k])
       end
     end 
+
 
     def initialize(fields = {})
       @fields = fields
