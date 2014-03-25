@@ -161,6 +161,10 @@ module Reunion
       if value.is_a?(String)
         return default_value if value.empty?
         return BigDecimal.new(value.gsub(/[\$,]/, ""))
+      elsif value.is_a?(Float)
+        return BigDecimal.new(value, 2 + value.to_i.to_s.length)
+      elsif !value.is_a?(BigDecimal)
+        return BigDecimal.new(value)
       end
       value
     end
@@ -172,6 +176,9 @@ module Reunion
     def query_methods
       [SchemaMethodDefinition.new(
         schema_field: self,
+        prep_data: ->(field, value, target){
+          target[field] = value.nil? ? nil : normalize(value) 
+        },
         name: :compare, example: "[20.00,2.00]|5.00",
         build: ->(field, args){
           Re::Or.new(args.flatten.map{|arg| 
