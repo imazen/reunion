@@ -19,7 +19,7 @@ module Reunion
       @modified_transactions << txn
       actual_change = false
       @actions.each do |action|
-        puts "Performing action"
+        #puts "Performing action"
         actual_change = true if action[:definition].apply_action.call(txn, action[:arguments])
       end
       @changed_transactions << txn if actual_change
@@ -65,7 +65,7 @@ module Reunion
         current_set = prep_transactions(current_set)
         break if current_set.empty?
         next_set = current_set.select{|t| modify_txn(t)}.map{|t| t[:_txn]}
-        puts "#{next_set.length} of #{current_set.length} transactions modified. Rule count = #{rules.length}"
+        #puts "#{next_set.length} of #{current_set.length} transactions modified. Rule count = #{rules.length}"
         current_set = next_set
       end
     end 

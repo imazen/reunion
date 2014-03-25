@@ -55,7 +55,7 @@ module Reunion
               primary[:balance_after] = to_txn[:balance_after]
               transactions.delete(to_txn)
               transactions.delete(from_txn)
-              puts "Flattened " +  Transaction.new(from_hash: primary).to_long_string
+              #puts "Flattened " +  Transaction.new(from_hash: primary).to_long_string
             end 
         
         end
@@ -67,10 +67,10 @@ module Reunion
       refd = transactions.select{|t| ref_ids.include?(t[:id])}
 
       refd.each do |primary|
-        puts "\n"
-        puts Transaction.new(from_hash: primary).to_long_string
+        #puts "\n"
+        #puts Transaction.new(from_hash: primary).to_long_string
         with_refs.select{|t| t[:ref_id] == primary[:id]}.each do |reft|
-          puts Transaction.new(from_hash: reft).to_long_string
+          #puts Transaction.new(from_hash: reft).to_long_string
         end
       end 
 
