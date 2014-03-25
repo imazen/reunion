@@ -1,26 +1,31 @@
- 
-- @schema = errors.first[:txn][:schema]
-.table-responsive
-  table.table.table-condensed
-    tr
-      th _
-      - @schema.fields.each_pair do |k,v|
-        th
-          = k
-    - errors.each do |r|
-      tr.danger
-        td
-          a href=("/transaction/" + r[:txn].lookup_key)
-            | go
-        - @schema.fields.each_pair do |k,v|
-          td
-            = v.format(r[:txn][k])
+
+
+- if errors.first.nil?
+  h3 No validation errors!
+
+- unless errors.first.nil? 
+  - @schema = errors.first[:txn][:schema]
+  .table-responsive
+    table.table.table-condensed
       tr
-        td colspan="100"
-          ul
-            - r[:errors].each do |err|
-              li
-                strong.danger
-                  = err[:field]
-                | : 
-                = err[:message]
+        th _
+        - @schema.fields.each_pair do |k,v|
+          th
+            = k
+      - errors.each do |r|
+        tr.danger
+          td
+            a href=("/transaction/" + r[:txn].lookup_key)
+              | go
+          - @schema.fields.each_pair do |k,v|
+            td
+              = v.format(r[:txn][k])
+        tr
+          td colspan="100"
+            ul
+              - r[:errors].each do |err|
+                li
+                  strong.danger
+                    = err[:field]
+                  | : 
+                  = err[:message]
