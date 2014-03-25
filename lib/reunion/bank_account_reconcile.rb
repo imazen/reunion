@@ -19,7 +19,7 @@ class Reunion::BankAccount
      
         w[:amount] = row[:amount] || 0
 
-        if row.key?(:balance_after)
+        if !row[:balance_after].nil?
           w[:daily_delta] = daily_delta = row[:balance_after] - day_start
         elsif w[:amount] != 0
           w[:daily_delta] = daily_delta += w[:amount]
@@ -74,6 +74,11 @@ class Reunion::BankAccount
     last_statement = nil
     balance = 0
 
+    start_bal = 0
+    start_bal_date = nil
+
+    last_txn_date = nil
+
 
     combined.each_with_index do | row, index |
       result_row = {}
@@ -86,7 +91,7 @@ class Reunion::BankAccount
 
       row_amount = row[:amount] ? row[:amount] : 0
       #What should the balance be after this row?
-      balance_after = row[:bal] ? row[:balance] : (row.key?(:balance_after) ? row[:balance_after] : (balance + row_amount))
+      balance_after = row[:bal] ? row[:balance] : (!row[:balance_after].nil? ? row[:balance_after] : (balance + row_amount))
       #p row if balance_after == 0
       result_row[:balance] = balance_after
 
@@ -107,6 +112,8 @@ class Reunion::BankAccount
         if last_balance_row.nil?
           description = "Using starting balance of " + ("%.2f" % (balance + discrepancy_amount))
           source = "From #{File.basename(get_balance_source.call(row).to_s)}"
+          start_bal = balance + discrepancy_amount
+          start_bal_date = row[:date]
         else
           description = "Discrepancy between #{last_balance_row[:date].strftime("%Y-%m-%d")} and #{result_row[:date].strftime("%Y-%m-%d")} of " + "%.2f" % discrepancy_amount 
      
@@ -134,14 +141,22 @@ class Reunion::BankAccount
 
       report << nil if row[:bal]
 
-      last_balance_row = row if row[:bal] || row.key?(:balance_after)
+      last_balance_row = row if row[:bal] || !row[:balance_after].nil?
       last_statement = row if row[:bal]
+      last_txn_date = row[:date] if row_amount != 0
 
     end
 
-    @final_discrepancy = report.compact.map { |r| r[:discrepancy]}.compact.inject(0, :+)
+    @final_discrepancy = report.compact.map { |r| r[:discrepancy]}.compact.inject(0, :+) - (start_bal || 0)
+    @starting_balance = start_bal
+    @starting_balance_date = start_bal_date
     @reconciliation_report = report
+    @last_balance_date = last_balance_row[:date]
+    @ending_balance = balance
+    @last_transaction_date = last_txn_date
     report
   end 
   attr_accessor :reconciliation_report 
+  attr_accessor :starting_balance, :starting_balance_date, :last_transaction_date, :last_balance_date, :ending_balance
+  attr_accessor :final_discrepancy
 end
