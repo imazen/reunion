@@ -1,8 +1,23 @@
-# Reunion is both a library and local webapp for repeatable accounting.
+# Reunion - do your accounting in a day
 
-All work is described in the form of input transaction files, manual files, and logic rules.
+Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
+
+**Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached.**
+
+All work is described in the form of input transaction files, override files, and logic rules.
 
 Can be re-run at any time when logic or categorization rules need to be corrected. As someone with limited accounting knowledge, I find myself perpetually correcting my processes.
+
+## Features
+
+* Import overlapping and unorganized QFX, CSV, TSV, TXT files from your bank, credit card, or PayPal.
+* Multi-currency
+* Merge metadata from multiple sources (Chase Jot, PayPal, Amazon, etc). 
+* Precision transaction deduplication and sanitization
+* Reconcile against monthly balances to prove correctness
+* Customize your schema, then define your rules in clean DSL.
+* Store manual corrections as a set of deltas. 
+* Reunion :heart: Git - **See diffs of everything that changes** &mdash; know exactly what a new file or rule changes.
 
 ## Stages
 
