@@ -45,6 +45,17 @@ module Reunion
 
 
   class SymbolField < SchemaField
+
+    def validate(value)
+      unless value.nil? || value.is_a?(Symbol)
+        return "Value #{value.inspect} (#{value.class.name}) is not a Symbol"
+      end
+      if value_required && value.nil?
+        return "Value required"
+      end 
+      nil
+    end 
+
     def self.to_symbol(value, default_value = nil)
       return default_value if value.nil?
       str = value.to_s.strip.squeeze(" ").downcase.gsub(" ","_")
@@ -72,7 +83,12 @@ module Reunion
     def normalize(value)
       [value].flatten.map{|v| SymbolField.to_symbol(v)}.compact.uniq
     end 
+
+
     def validate(value)
+      if !value.nil? && !value.is_a?(Array)
+        return "Value must be an array"
+      end 
       if allowed_values
         invalid = value - allowed_values
         return "Values #{invalid.inspect} not found in allowed values #{allowed_values.inspect}" unless invalid.empty?
