@@ -85,7 +85,7 @@ module Reunion
       #binding.pry
     end
 
-    attr_reader :rule_sets
+    attr_reader :rule_sets, :overrides
 
     attr_reader :transfer_pairs, :unmatched_transfers
 
