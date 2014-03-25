@@ -49,12 +49,11 @@ html lang="en"
               li
                 a href="/report" 7. Report
 
-    /.container
-
-      p
-        == "Displaying transactions between #{get_date_from} to #{get_date_to}"
-      /Inner layout or page renders here
-    == yield
+    .container-fluid
+      /
+        p
+          == "Displaying transactions between #{get_date_from} to #{get_date_to}"
+      == yield
 
 
 
