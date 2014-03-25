@@ -46,6 +46,8 @@ module Reunion
         Hash[obj.to_a.map{ |pair| [symbolfy(pair[0]), symbolfy(pair[1])]}]
       elsif obj.is_a? String 
         obj.strip.downcase.to_sym
+      elsif obj.nil?
+        nil
       else
         raise "Don't know how to symbolfy #{obj.inspect}"
       end 
