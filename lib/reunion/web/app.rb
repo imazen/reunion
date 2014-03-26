@@ -114,7 +114,7 @@ module Reunion
 
 
       get '/' do
-        redirect to('/expense')
+        redirect to('/import/sources')
       end 
 
       get '/search' do
