@@ -2,7 +2,14 @@
 
 Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
 
-**Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached.**
+**Year-end accounting in one day** &mdash; automate with a Ruby DSL, then add overrides through the web app.
+
+**Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
+
+**Automatic reconciliation** &mdash; never lose a transaction (or confidence in your data). Balances are perpetually checked against intermediate transactions.
+
+**Reunion :heart: Git** - See diffs of everything that changes
+
 
 All work is described in the form of input transaction files, override files, and logic rules.
 
