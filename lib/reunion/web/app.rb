@@ -1,4 +1,4 @@
-require "sinatra"
+require "sinatra/base"
 require "slim"
 require "json"
 
@@ -14,6 +14,14 @@ end
 module Reunion
   module Web
     class App < ::Sinatra::Base
+
+      def self.root_dir
+        File.dirname(__FILE__)
+      end 
+
+      def self.views_dir
+        File.join(File.dirname(__FILE__), 'views')
+      end 
 
       puts "App reloaded"
 
@@ -119,8 +127,8 @@ module Reunion
           keep = false if t[:transfer_pair]
           keep = false if t.date < Date.parse('2013-03-16')
           keep = false if t.date > Date.parse('2014-03-19')
-          keep = false if [:income, :owner_draw].include?(t[:tax_expense])
-          keep = false if t[:rebill] == :no
+          keep = false if [:income, :owner_draw, :fees, :refunds].include?(t[:tax_expense])
+          keep = false unless t[:rebill].to_s.empty?
           keep
         end
       end 
@@ -129,30 +137,7 @@ module Reunion
         slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
       end
 
-      post '/overrides' do
-        change_made = false
-        params.each_pair do |k,v|
-          unless v.to_s.empty? || !k.start_with?('memo_')
-            digest = k.sub /\Amemo_/, ""
-            txn = get_cached_books.all_transactions.select{|t| t.lookup_key == digest}.first
-            existing = get_cached_books.overrides.by_digest(digest)
-            changes = existing.nil? ? {} : existing.changes
-            oldval = changes[:memo] || txn[:memo]
-            if oldval != v
-              changes[:memo] = v
-              get_cached_books.overrides.set_override(txn,changes)
-              change_made = true
-            end 
-          end 
-        end 
-        if change_made
-          get_cached_books.overrides.save 
-          get_cached_books.overrides.apply_all(get_cached_books.all_transactions)
-        end
-
-        slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
-      end 
-
+ 
       post '/overrides/:id' do |id|
         content_type :json
         key = params[:key].downcase.to_sym
