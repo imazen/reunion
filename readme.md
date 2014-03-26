@@ -109,29 +109,38 @@ Fields defined in the schema can be indexed and searched with the DSL. They also
 The schema ensures that data types are verified at each stage. 
 
 ```ruby
-@schema = Schema.new({id: StringField.new(readonly:true),
- date: DateField.new(readonly:true, critical:true, display_tags: [:rebill_form]), 
- amount: AmountField.new(readonly:true, critical:true, default_value: 0, display_tags: [:rebill_form]),
- balance_after: AmountField.new(readonly:true),
- tags: TagsField.new,
- description: DescriptionField.new(readonly:true, default_value: "", display_tags: [:rebill_form]),
- description2: DescriptionField.new(readonly:true, display_tags: [:rebill_form]),
- vendor: SymbolField.new(display_tags: [:rebill_form]),
- vendor_description: DescriptionField.new,
- vendor_tags: TagsField.new,
- client: SymbolField.new,
- subledger: SymbolField.new,
- client_tags: TagsField.new,
- tax_expense: SymbolField.new(display_tags: [:rebill_form]),
- account_sym: SymbolField.new(readonly:true),
- transfer: BoolField.new,
- discard_if_unmerged: BoolField.new(readonly:true),
- currency: UppercaseSymbolField.new(readonly:true),
- chase_tags: TagsField.new,
- rebill: SymbolField.new(display_tags: [:rebill_form]),
- memo: DescriptionField.new(display_tags: [:rebill_form]),
- product: SymbolField.new(display_tags: [:rebill_form]),
- txn_type: SymbolField.new()
+@schema = Schema.new({
+
+account_sym: SymbolField.new(readonly:true), #the permanent ID of the bank account
+id: StringField.new(readonly:true), #bank-provided txn id, if available
+date: DateField.new(readonly:true, critical:true), 
+amount: AmountField.new(readonly:true, critical:true, default_value: 0),
+description: DescriptionField.new(readonly:true, default_value: ""),
+currency: UppercaseSymbolField.new(readonly:true),
+balance_after: AmountField.new(readonly:true), #The balance of the account following the application of the transaction
+txn_type: SymbolField.new, #Sometimes provided. purchase, income, refund, return, transfer, fee, or nil
+transfer: BoolField.new, #If true, transaction will be paird with a matching one in a different account
+discard_if_unmerged: BoolField.new(readonly:true), #If true, this transaction should only contain optional metadata
+
+description2: DescriptionField.new(readonly:true), #For additional details, like Amazon order items
+
+
+#The remainer are simply commonly used conventions 
+tags: TagsField.new,
+
+vendor: SymbolField.new,
+vendor_description: DescriptionField.new,
+vendor_tags: TagsField.new,
+
+client: SymbolField.new,
+client_tags: TagsField.new,
+
+tax_expense: SymbolField.new,
+subledger: SymbolField.new,
+
+chase_tags: TagsField.new,
+memo: DescriptionField.new
+
 })
 ```
 
