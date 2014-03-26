@@ -6,11 +6,11 @@ Reunion is both a library and webapp for repeatable and verifiable accounting, e
 
 **Automatic reconciliation** &mdash; never lose a transaction (or confidence in your data). Balances are perpetually checked against intermediate transactions.
 
-**Reunion :heart: Git** &mdash; DIFF ALL THE THINGS
+**Reunion :heart: Git** &mdash; DIFF ALL THE THINGS.  Know when anything changes and why
 
 **Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
 
-All work is described in the form of input files, rules, and deltas. Re-calculate everything in udner a second.
+All work is described in the form of input files, rules, and deltas. Re-calculate everything in under a second.
 
 Evolve your system as your accounting knowledge improves.
 
@@ -48,7 +48,7 @@ We'll have a sample project set up shortly after someone asks.
 ### Describe bank accounts
 
 Describe the bank accounts you will be importing transactions for. 
-```
+```ruby
 paypal      = BankAccount.new(name: "PayPal", currency: :USD, permanent_id: :paypal)
 paypal_euro = BankAccount.new(name: "PayPal_Euro", currency: :EUR, permanent_id: :paypal_euro)
 chase       = BankAccount.new(name: "ChaseCC", currency: :USD, permanent_id: :chasecc)
@@ -61,8 +61,8 @@ pnc         = BankAccount.new(name: "PNC", currency: :USD, permanent_id: :pnc)
 If you want to use the default convention and StandardFileLocator, each input file needs to be named `[account]-[parser]-humanname.ext`.
 
 Map account tags to bank account instances
-```
-@bank_file_tags = {paypal: [paypal, paypal_euro], #because files tagged 'paypal' have both EUR and USD txns
+```ruby
+@bank_file_tags = {paypal: [paypal, paypal_euro], #files with both EUR and USD txns
                    paypal_usd: paypal, 
                    paypal_euro: paypal_euro,
                    chasecc: chase,
@@ -71,7 +71,7 @@ Map account tags to bank account instances
 ```
 
 Map the parser tags to classes.
-```
+```ruby
 @parsers = {
   pncs: PncStatementActivityCsvParser,
   pncacsv: PncActivityCsvParser,
@@ -87,14 +87,14 @@ Map the parser tags to classes.
 
 Some account files can't be merged, and need to have overlaps deleted instead.
 
-```
+```ruby
 #Because PNC statements and activity exports have different transaction descriptions.
 pnc.add_parser_overlap_deletion(keep_parser: PncStatementActivityCsvParser, discard_parser: PncActivityCsvParser)
 ```
 
 Configure where to look for files
 
-```
+```ruby
 @locator = l = StandardFileLocator.new 
 l.working_dir = File.dirname(__FILE__)
 l.input_dirs = ["./input/imports","./input/manual","./input/categorize"]
@@ -106,7 +106,7 @@ Fields defined in the schema can be indexed and searched with the DSL. They also
 
 The schema ensures that data types are verified at each stage. 
 
-```
+```ruby
 @schema = Schema.new({id: StringField.new(readonly:true),
  date: DateField.new(readonly:true, critical:true, display_tags: [:rebill_form]), 
  amount: AmountField.new(readonly:true, critical:true, default_value: 0, display_tags: [:rebill_form]),
@@ -137,7 +137,7 @@ The schema ensures that data types are verified at each stage.
 
 Sanity-check. Ensure transactions add up to balances. If your exported files don't inclue them, you should enter ending statement balances in a tab-delimited file, like this:
 
-```
+```tsv
 Date	Balance
 2013-12-04	-3843.84
 2014-01-04	-415.04
