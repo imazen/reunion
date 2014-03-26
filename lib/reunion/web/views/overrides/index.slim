@@ -1,7 +1,7 @@
 h3
   | Results
 
-- if defined?(results) && results
+- if defined?(results) && results && results.length > 0
   - debits = results.map{|t|t.amount}.select{|v| v < 0}
   - credits = results.map{|t|t.amount}.select{|v| v >= 0}
   - schema = results.first.schema
@@ -9,11 +9,13 @@ h3
 
   table.table.table-condensed
     tr
+      th _
       - schema.field_names_tagged(:rebill_form).each do |name|
         - next if name == :description2
         th #{name}
     - results.each do |r|
       tr id=r.lookup_key
+        td: a href="/transaction/#{r.lookup_key}" go
         - schema.field_pairs_tagged(:rebill_form).each do |k,v|
           - next if k == :description2
           td
@@ -27,7 +29,6 @@ h3
                 input.form-control type="text" value=v.format(r[k])   data-id=r.lookup_key data-key=k 
                 span.glyphicon
                 span.warning.message style="min-width:3em"
-
 
   
 javascript:
