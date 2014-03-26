@@ -29,6 +29,7 @@ Evolve your system as your accounting knowledge improves.
 * Store manual corrections as a set of deltas. 
 * Reunion :heart: Git - **See diffs of everything that changes** &mdash; know exactly what a new file or rule changes.
 * Detect transfers between accounts
+* Speed - optimized decision trees (hashes and tries) are used to prevent exponential slowdown. With 300 rules, we're seeing 0.5ms per transaction.
 
 ## Stages
 
@@ -160,3 +161,22 @@ Date	Balance
 Discrepancies are identified and windowed to a particular time span.
 
 Reconciliation helps catch duplicate or missing transactions. 
+
+## Rules
+
+[Check out the sample project rules for more](https://github.com/imazen/reunion-sample/tree/master/input/rules), but here's a taste.
+
+```ruby
+tag(:expense) do
+  tax_expense :insurance do
+    for_vendors :auto_owners_insurance 
+  end
+
+  tax_expense :advertising do
+    for_vendors :repository_hosting, :github, :appharbor, :aws, :microsoft, :app_net, :heroku
+    vendor_tags :advertising
+    vendor_tags :job_listings
+    vendor_tags :domains
+  end 
+end
+```
