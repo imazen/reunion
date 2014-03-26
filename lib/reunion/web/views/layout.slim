@@ -16,38 +16,43 @@ html lang="en"
     script src="/js/jquery-2.1.0.min.js"
     script src="/js/bootstrap.min.js"
   body
-    /Header
-    .navbar.navbar.navbar-static-top role="banner" id="top"
-      .container
+    .navbar.navbar.navbar-defaulr role="navigation" id="top"
+      .container-fluid
         .navbar-header
           button class="navbar-toggle" data-toggle="collapse" type="button" data-target=".bs-nav-collapse"
-            span class="icon-bar"
-            span class="icon-bar"
-            span class="icon-bar"
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
           
           a class="navbar-brand" href="/"
             = "Reunion"
-          .navbar-collapse.collapse.bs-navbar-collapse role="navigation"
-            ul.nav.navbar-nav
-              li
-                a href="/import/sources" 1. Import
-              li
-                a href="/bank" 2. Reconcile
-              li
-                a href="/import/validate" Schema
-              li 
-                a href="/rules" 3. Rules
-              li 
-                a href="/rules/repl" Repl
-              li
-                a href="/overrides" 4. Correct
 
-              li
-                a href="/expense" 5. Expenses
-              li
-                a href="/transfers/unmatched" 6. Transfers
-              li
-                a href="/report" 7. Report
+
+
+        .navbar-collapse.collapse.bs-navbar-collapse role="navigation"
+          ul.nav.navbar-nav
+            li
+              a href="/import/sources" 1. Import
+            li
+              a href="/bank" 2. Reconcile
+            li
+              a href="/import/validate" 3. Validate
+            li 
+              a href="/rules" 4. Rules
+            li 
+              a href="/rules/repl" Repl
+            li
+              a href="/overrides" 4. Correct
+            li
+              a href="/expense" 5. Expenses
+            li
+              a href="/transfers/unmatched" 6. Transfers
+            li
+              a href="/report" 7. Report
+          form action="/rerun" method="post"
+            button.navbar-btn.btn.btn-default type="submit" 
+              span.glyphicon.glyphicon-refresh
+              |  Recompute all
 
     .container-fluid
       /

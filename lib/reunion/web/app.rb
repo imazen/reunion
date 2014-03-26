@@ -75,6 +75,12 @@ module Reunion
         @@books ||= get_books
       end
 
+      post '/rerun' do
+        @@books = nil
+        @org = org.class.new 
+        redirect_to request.referer
+      end
+
       get '/import/sources' do
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 
