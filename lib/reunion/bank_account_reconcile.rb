@@ -151,7 +151,7 @@ class Reunion::BankAccount
     @starting_balance = start_bal
     @starting_balance_date = start_bal_date
     @reconciliation_report = report
-    @last_balance_date = last_balance_row[:date]
+    @last_balance_date = last_balance_row[:date] unless last_balance_row.nil?
     @ending_balance = balance
     @last_transaction_date = last_txn_date
     report
