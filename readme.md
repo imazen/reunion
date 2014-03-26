@@ -2,18 +2,18 @@
 
 Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
 
-**Year-end accounting in one day** &mdash; automate with a Ruby DSL, then add overrides through the web app.
-
-**Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
+**Year-end accounting in one day** &mdash; automate with a DSL or edit with a streamlined web app.
 
 **Automatic reconciliation** &mdash; never lose a transaction (or confidence in your data). Balances are perpetually checked against intermediate transactions.
 
-**Reunion :heart: Git** - See diffs of everything that changes
+**Reunion :heart: Git** &mdash; DIFF ALL THE THINGS
+
+**Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
 
 
-All work is described in the form of input transaction files, override files, and logic rules.
+All work is described in the form of input files, rules, and deltas.
 
-Can be re-run at any time when logic or categorization rules need to be corrected. As someone with limited accounting knowledge, I find myself perpetually correcting my processes.
+Can be re-run at any time when logic or categorization rules need to be corrected. Evolve your system as your accounting knowledge improves.
 
 ## Features
 
@@ -25,6 +25,7 @@ Can be re-run at any time when logic or categorization rules need to be correcte
 * Customize your schema, then define your rules in clean DSL.
 * Store manual corrections as a set of deltas. 
 * Reunion :heart: Git - **See diffs of everything that changes** &mdash; know exactly what a new file or rule changes.
+* Detect transfers between accounts
 
 ## Stages
 
@@ -36,7 +37,16 @@ Associated data files (like Jot) are merged.
 
 ### Reconciliation
 
-Sanity-check. Ensure transactions add up to balances. You should enter manual monthly balances from your bank/card statements to ensure there are no issues.
+Sanity-check. Ensure transactions add up to balances. If your exported files don't inclue them, you should enter ending statement balances in a tab-delimited file, like this:
+
+```
+Date	Balance
+2013-12-04	-3843.84
+2014-01-04	-415.04
+2014-02-04	-115.00
+2014-03-04	-2,238.79
+2014-03-25	-5245.79
+```
 
 Discrepancies are identified and windowed to a particular time span.
 
@@ -54,21 +64,10 @@ We can generate tax and ledgers based on transaction tags
 
 ## Todo
 
-Allows manual transfer pairing via shared guids
-Add credit-card charge-back (REBILL) matching/handling
-What terminology to differentiate between 'discard_if_unmatched' transactions like jot and authoritative transactions?
-Add 'expectations system' to allow for financial planning (and to double as tag tagging rules)
-Add 'evidence association' for inscrutable descriptions
-Add real-time rule evaluation
-Add transaction clustering
-Add Amazon and E-junkie addendum integration
-
-## Maybe todo
-
-Warn user if two overlapping input files disagree (this should be caught by reconciliation anyway)
-
----
-
+* Allow manual transfer pairing via shared guids
+* Add automatic credit-card charge-back (REBILL) matching/handling
+* Add 'expectations system' to allow for financial planning
+* Add Amazon and E-junkie metadat integration
 
 
 ## Bank-specific details
@@ -95,8 +94,6 @@ Use Chase Statement pdf ending balances for manual balance reconciliation.
 Use Chase csv exports for transaction source.
 
 
-
-
 ## Notes from earlier
 
 All files and pastes go into 'unparsed' initially, each accompanied by a description of where they were sourced. (i.e, PNC business, CSV statement export). Each source description used in the past should populate the auto-complete list.
@@ -116,7 +113,7 @@ A JSON file will be created with any additional data, named .normal.json. The SH
 
 ## Importing
 
-All files for an account are pulled into memory and merged. Duplicate transactions in the same source file will be considered 'not duplicate'. If 2 source files overlap, and within that overlap, do not contain the same transactions, errors will be logged (unless disabled for that parse definition).
+All files for an account are pulled into memory and merged. Duplicate transactions in the same source file will be considered 'not duplicate'.
 
 Results will be sorted by date, and split/written to multiple files (monthly, quarterly, or yearly depending on config)
 
