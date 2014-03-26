@@ -1,12 +1,22 @@
 # Reunion - do your accounting in a day
 
-Reunion is both a library and webapp for repeatable accounting, expense categorization, and reporting. 
+Reunion is both a library and webapp for repeatable and verifiable accounting, expense categorization, and reporting. 
 
-**Eliminate audit anxiety &mdash; produce deduction reports with evidence already attached.**
+**Year-end accounting in one day** &mdash; automate with a DSL or edit with a streamlined web app.
 
-All work is described in the form of input transaction files, override files, and logic rules.
+**Automatic reconciliation** &mdash; never lose a transaction (or confidence in your data). Balances are perpetually checked against intermediate transactions.
 
-Can be re-run at any time when logic or categorization rules need to be corrected. As someone with limited accounting knowledge, I find myself perpetually correcting my processes.
+**Reunion :heart: Git** &mdash; DIFF ALL THE THINGS.  Know when anything changes and why
+
+**Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
+
+All work is described in the form of input files, rules, and deltas. Re-calculate everything in under a second.
+
+Evolve your system as your accounting knowledge improves.
+
+## We need help gathering use cases - open an issue and describe your needs!
+
+[Clone the sample project](https://github.com/imazen/reunion-sample) and reunion itself to a directory to get started.
 
 ## Features
 
@@ -18,105 +28,135 @@ Can be re-run at any time when logic or categorization rules need to be correcte
 * Customize your schema, then define your rules in clean DSL.
 * Store manual corrections as a set of deltas. 
 * Reunion :heart: Git - **See diffs of everything that changes** &mdash; know exactly what a new file or rule changes.
+* Detect transfers between accounts
 
 ## Stages
 
-### Parse and deduplicate
+1. Configure. Define Bank accounts, file->account/parser convention, and the schema
+2. Input files are parsed & sanitized per Schema
+3. Input files are merged and deduplicated to create each account. Associated data files (like Jot) are merged. 
+4. Balance statements are checked against intermediate transactions to ensure none are missing or duplicated. 
+5. Manual deltas (overrides) are applied
+6. Rules are applied
+7. Manual deltas are applied again
+8. Transfers are matched
+8. Results are generated
 
-Input files are parsed, merged, and deduplicated. If an input file needs to be used for multiple accounts, use a unique filetag only used by those accounts. Every currency within an account is a separate account. I.e, PayPal with both USD and EUR balances is two accounts. 
 
-Associated data files (like Jot) are merged. 
+## Configuration
+
+We have [a sample project in progress](https://github.com/imazen/reunion-sample). 
+
+### Describe bank accounts
+
+Describe the bank accounts you will be importing transactions for. 
+```ruby
+paypal      = BankAccount.new(name: "PayPal", currency: :USD, permanent_id: :paypal)
+paypal_euro = BankAccount.new(name: "PayPal_Euro", currency: :EUR, permanent_id: :paypal_euro)
+chase       = BankAccount.new(name: "ChaseCC", currency: :USD, permanent_id: :chasecc)
+amex        = BankAccount.new(name: "Amex", currency: :USD, permanent_id: :amex)
+pnc         = BankAccount.new(name: "PNC", currency: :USD, permanent_id: :pnc)
+@bank_accounts = [paypal, paypal_euro, chase, amex, pnc]
+```
+### Describe file naming convention for accounts and parsers
+
+If you want to use the default convention and StandardFileLocator, each input file needs to be named `[account]-[parser]-humanname.ext`.
+
+Map account tags to bank account instances
+```ruby
+@bank_file_tags = {paypal: [paypal, paypal_euro], #files with both EUR and USD txns
+                   paypal_usd: paypal, 
+                   paypal_euro: paypal_euro,
+                   chasecc: chase,
+                   amex: amex,
+                   pnc: pnc}
+```
+
+Map the parser tags to classes.
+```ruby
+@parsers = {
+  pncs: PncStatementActivityCsvParser,
+  pncacsv: PncActivityCsvParser,
+  ppbaptsv: PayPalBalanceAffectingPaymentsTsvParser,
+  chasejotcsv: ChaseJotCsvParser,
+  chasecsv: ChaseCsvParser,
+  tsv: TsvParser,
+  tjs: TsvJsParser,
+  cjs: CsvJsParser,
+  amexqfx: OfxParser,
+  chaseqfx: OfxTransactionsParser}
+```
+
+Some account files can't be merged, and need to have overlaps deleted instead.
+
+```ruby
+#Because PNC statements and activity exports have different transaction descriptions.
+pnc.add_parser_overlap_deletion(keep_parser: PncStatementActivityCsvParser, discard_parser: PncActivityCsvParser)
+```
+
+Configure where to look for files
+
+```ruby
+@locator = l = StandardFileLocator.new 
+l.working_dir = File.dirname(__FILE__)
+l.input_dirs = ["./input/imports","./input/manual","./input/categorize"]
+```
+
+### Describe the schema
+
+Fields defined in the schema can be indexed and searched with the DSL. They also can be exposed for manual editing in the web app, and can be (de)serialized with accuracy. Temporary fields that doesn't need any of these advantages can simply use the hash interface provided by all transactions.
+
+The schema ensures that data types are verified at each stage. 
+
+```ruby
+@schema = Schema.new({
+
+account_sym: SymbolField.new(readonly:true), #the permanent ID of the bank account
+id: StringField.new(readonly:true), #bank-provided txn id, if available
+date: DateField.new(readonly:true, critical:true), 
+amount: AmountField.new(readonly:true, critical:true, default_value: 0),
+description: DescriptionField.new(readonly:true, default_value: ""),
+currency: UppercaseSymbolField.new(readonly:true),
+balance_after: AmountField.new(readonly:true), #The balance of the account following the application of the transaction
+txn_type: SymbolField.new, #Sometimes provided. purchase, income, refund, return, transfer, fee, or nil
+transfer: BoolField.new, #If true, transaction will be paird with a matching one in a different account
+discard_if_unmerged: BoolField.new(readonly:true), #If true, this transaction should only contain optional metadata
+
+description2: DescriptionField.new(readonly:true), #For additional details, like Amazon order items
+
+
+#The remainer are simply commonly used conventions 
+tags: TagsField.new,
+
+vendor: SymbolField.new,
+vendor_description: DescriptionField.new,
+vendor_tags: TagsField.new,
+
+client: SymbolField.new,
+client_tags: TagsField.new,
+
+tax_expense: SymbolField.new,
+subledger: SymbolField.new,
+
+chase_tags: TagsField.new,
+memo: DescriptionField.new
+
+})
+```
 
 ### Reconciliation
 
-Sanity-check. Ensure transactions add up to balances. You should enter manual monthly balances from your bank/card statements to ensure there are no issues.
+Sanity-check. Ensure transactions add up to balances. If your exported files don't inclue them, you should enter ending statement balances in a tab-delimited file, like this:
+
+```tsv
+Date	Balance
+2013-12-04	-3843.84
+2014-01-04	-415.04
+2014-02-04	-115.00
+2014-03-04	-2,238.79
+2014-03-25	-5245.79
+```
 
 Discrepancies are identified and windowed to a particular time span.
 
 Reconciliation helps catch duplicate or missing transactions. 
-
-### Tagging and transfer detection
-
-Rules help tag transactions
-
-Rules identify likely transfers, rough matching pairs them.
-
-### Generate reports/ledgers based on tagged transfers
-
-We can generate tax and ledgers based on transaction tags
-
-## Todo
-
-Allows manual transfer pairing via shared guids
-Add credit-card charge-back (REBILL) matching/handling
-What terminology to differentiate between 'discard_if_unmatched' transactions like jot and authoritative transactions?
-Add 'expectations system' to allow for financial planning (and to double as tag tagging rules)
-Add 'evidence association' for inscrutable descriptions
-Add real-time rule evaluation
-Add transaction clustering
-Add Amazon and E-junkie addendum integration
-
-## Maybe todo
-
-Warn user if two overlapping input files disagree (this should be caught by reconciliation anyway)
-
----
-
-
-
-## Bank-specific details
-
-### PayPal
-
-Paypal has many unique features - 
-
-Charges directly to someone's PayPal account show up the same as transfer/charges through your own PayPal account.
-
-### PNC
-
-PNC's most accurate export method is Online Statements -> Select month -> Activity Detail -> Export > Select CSV -> Download Now
-
-
-PNC statement CSVs and the 90-day activity exports use totally different descriptions... they can't be merged.
-
-### Chase
-
-
-Chase Jot CSVs include authorizations that's didnt't actually post.
-Chase qfx exports include incorrect balances.
-Use Chase Statement pdf ending balances for manual balance reconciliation.
-Use Chase csv exports for transaction source.
-
-
-
-
-## Notes from earlier
-
-All files and pastes go into 'unparsed' initially, each accompanied by a description of where they were sourced. (i.e, PNC business, CSV statement export). Each source description used in the past should populate the auto-complete list.
-
-
-## Parsing
-
-During parsing, the user views an unparsed file and assigns (a) a parsing definition and (b) an account. 
-
-It may be possible to have the computer auto-detect files.
-
-The file will be moved out of 'unparsed' into 'imported', and named '[accountname]-[parsealgorithm]-[YYYY-MM-DD of last transaction date]-[x days].ext', like 'pncb-pncactivitycsv-2013-09-20-365-days.csv'
-
-A tab delimited file will be created with just transaction data, name [file.ext].normal.tsv
-
-A JSON file will be created with any additional data, named .normal.json. The SHA1 hash of the source file will be included, along with the export version number.
-
-## Importing
-
-All files for an account are pulled into memory and merged. Duplicate transactions in the same source file will be considered 'not duplicate'. If 2 source files overlap, and within that overlap, do not contain the same transactions, errors will be logged (unless disabled for that parse definition).
-
-Results will be sorted by date, and split/written to multiple files (monthly, quarterly, or yearly depending on config)
-
-
-## Transfers
-
-Transfers will be auto-detected and added 
-
-
-
