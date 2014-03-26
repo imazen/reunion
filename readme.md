@@ -10,10 +10,11 @@ Reunion is both a library and webapp for repeatable accounting, expense categori
 
 **Eliminate audit anxiety** &mdash; access deduction reports with evidence already attached.
 
+All work is described in the form of input files, rules, and deltas. Re-calculate everything in udner a second.
 
-All work is described in the form of input files, rules, and deltas.
+Evolve your system as your accounting knowledge improves.
 
-Can be re-run at any time when logic or categorization rules need to be corrected. Evolve your system as your accounting knowledge improves.
+## We need help gathering use cases - open an issue and describe your needs!
 
 ## Features
 
