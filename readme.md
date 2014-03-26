@@ -16,6 +16,8 @@ Evolve your system as your accounting knowledge improves.
 
 ## We need help gathering use cases - open an issue and describe your needs!
 
+[Clone the sample project](https://github.com/imazen/reunion-sample) and reunion itself to a directory to get started.
+
 ## Features
 
 * Import overlapping and unorganized QFX, CSV, TSV, TXT files from your bank, credit card, or PayPal.
@@ -43,7 +45,7 @@ Evolve your system as your accounting knowledge improves.
 
 ## Configuration
 
-We'll have a sample project set up shortly after someone asks.
+We have [a sample project in progress](https://github.com/imazen/reunion-sample). 
 
 ### Describe bank accounts
 
