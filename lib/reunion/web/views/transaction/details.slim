@@ -7,12 +7,22 @@
   h3 No transaction found matching #{key}
 - unless txn.nil?
   table.table.table-condensed
-    - txn.data.each_pair do |k,v|
+    - txn.schema.fields.each do |name, schema|
+      tr
+        th 
+          = name
+        td
+          = txn.schema[name].format(txn[name])
+  table.table.table-condensed
+    - txn.data.each do |name, value|
+      - next if txn.schema.fields[name]
       tr
         th
-          = k
+          = name
         td
-          = v
-
-  h4 txn.inspect: 
-  = txn.inspect
+          = value
+  - errors = txn.schema.validate(txn)
+  - unless errors.nil?
+    h3 Validation errors
+    p 
+      = errors
