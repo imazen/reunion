@@ -22,13 +22,13 @@ module Reunion
     end
   end
 
-  class CsvJsParser < ParserBase
+  class CsvParser < ParserBase
     def parse(text)
       a = CSV.parse(text.rstrip, csv_options).select{|r|true}
 
       {combined: a.map {|r|
         row = {}.merge(r.to_hash)
-        json = JSON.parse(r[:set]) if r[:set] && !r[:set].strip.empty?
+        json = JSON.parse(r[:json]) if r[:json] && !r[:json].strip.empty?
         row = row.merge(json) if json
         row
       }}
@@ -36,14 +36,14 @@ module Reunion
   end
 
 
-  class TsvJsParser < ParserBase
+  class TsvParser < ParserBase
     def parse(text)
       a = StrictTsv.new(text.encode('UTF-8').rstrip).parse
 
       {combined: a.map{|r|
         row = {}.merge(r)
         #merge JSON row
-        json = JSON.parse(r[:set]) if r[:set] && !r[:set].strip.empty?
+        json = JSON.parse(r[:json]) if r[:json] && !r[:json].strip.empty?
         row = row.merge(json) if json
         row
       }} 
@@ -51,13 +51,6 @@ module Reunion
   end
 
 
-  class TsvParser < ParserBase #Bad TSV parser. 
-    def parse(text)
-      a = CSV.parse(text.rstrip, csv_options.merge({col_sep:"\t"}))
-
-      {combined: a.map{|r| r.to_hash}}
-    end 
-  end
 
 end
 
