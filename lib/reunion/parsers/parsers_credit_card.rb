@@ -4,7 +4,6 @@ module Reunion
 
     def parse_txn_type(type)
       return nil if type.nil?
-      type = type.strip.downcase
       case type.strip.downcase
       when "sale"
         :purchase
