@@ -27,7 +27,7 @@ module Reunion
 
       set :root, File.dirname(__FILE__)
 
-      attr_accessor :org
+      attr_accessor :org_cache
 
       helpers do
         def get_date_from
@@ -38,11 +38,11 @@ module Reunion
           @@date_to ||= Date.parse('2014-01-01')
         end
 
-      end 
+        def org
+          org_cache.org_computed
+        end
 
-      before do
-        org.ensure_complete
-      end
+      end 
 
       def filter_transactions(txns, drop_paired_transfers = true)
         txns.select do |t| 
@@ -55,7 +55,7 @@ module Reunion
       end 
 
       def get_transfer_pairs
-        get_cached_books.transfer_pairs
+        org.transfer_pairs
       end
 
       post '/set_date_from/:from' do |from|
@@ -66,19 +66,14 @@ module Reunion
         @@date_to = to
       end 
 
-      def get_books
-        org
+      post '/reparse' do
+        org_cache.invalidate_parsing!
+        redirect request.referer
       end
 
-
-      def get_cached_books
-        @@books ||= get_books
-      end
-
-      post '/rerun' do
-        @@books = nil
-        @org = org.class.new 
-        redirect_to request.referer
+      post '/recompute' do
+        org_cache.invalidate_computations!
+        redirect request.referer
       end
 
       get '/import/sources' do
@@ -109,12 +104,12 @@ module Reunion
       end
 
       get '/transfers/unmatched' do
-        results = filter_transactions(get_cached_books.unmatched_transfers)
+        results = filter_transactions(org.unmatched_transfers)
         slim :unmatched_transfers, {:layout => :layout, :locals => {:results => results}}
       end
 
       get '/transfers/paired' do
-        results = get_cached_books.transfer_pairs
+        results = org.transfer_pairs
         slim :transfer_pairs, {:layout => :layout, :locals => {:results => results}}
       end
 
@@ -128,7 +123,7 @@ module Reunion
       end
 
       def txns_to_workon
-        get_cached_books.all_transactions.select do |t|
+        org.all_transactions.select do |t|
           keep = true
           keep = false if t[:transfer_pair]
           keep = false if t.date < Date.parse('2013-03-16')
@@ -170,16 +165,16 @@ module Reunion
       end
 
       get '/search/:query' do |query|
-        results = filter_transactions(get_cached_books.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
+        results = filter_transactions(org.all_transactions).select{|t| t.description.downcase.include?(query.downcase)}
 
         slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
       end
 
       get '/expense/?' do
 
-        txns = filter_transactions(get_cached_books.all_transactions)
-        all_txns = filter_transactions(get_cached_books.all_transactions, false)
-        list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
+        txns = filter_transactions(org.all_transactions)
+        all_txns = filter_transactions(org.all_transactions, false)
+        list = org.all_transactions.map{|t| t[:tax_expense]}.uniq
         slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list, :txns => txns, :all_txns => all_txns}}
       end
 
@@ -188,17 +183,17 @@ module Reunion
       set :show_exceptions, false
 
       get '/expense/:query' do |query|
-        list = get_cached_books.all_transactions.map{|t| t[:tax_expense]}.uniq
+        list = org.all_transactions.map{|t| t[:tax_expense]}.uniq
         query = query.to_s.downcase.to_sym
 
 
-        results = filter_transactions(get_cached_books.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
+        results = filter_transactions(org.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
 
         slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list}}
       end
 
       get '/rules' do
-        rules = get_cached_books.rule_sets
+        rules = org.rule_sets
         slim :rules, {:layout => :layout, :locals => {:rules => rules}}
       end 
 
@@ -222,7 +217,7 @@ module Reunion
       end
 
       get '/transaction/:id' do |id|
-        results = get_cached_books.all_transactions.select{|t| t.lookup_key == id}
+        results = org.all_transactions.select{|t| t.lookup_key == id}
         slim :'transaction/details', {:layout => :layout, :locals => {:results => results, :txn => results.first, :key => id}}
       end 
 

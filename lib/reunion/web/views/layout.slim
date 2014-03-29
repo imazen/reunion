@@ -49,10 +49,14 @@ html lang="en"
               a href="/transfers/unmatched" 6. Transfers
             li
               a href="/report" 7. Report
-          form action="/rerun" method="post"
+          form action="/reparse" method="post"
             button.navbar-btn.btn.btn-default type="submit" 
               span.glyphicon.glyphicon-refresh
-              |  Recompute all
+              |  Reparse
+          form action="/recompute" method="post"
+            button.navbar-btn.btn.btn-default type="submit" 
+              span.glyphicon.glyphicon-refresh
+              |  Recompute
 
     .container-fluid
       /
