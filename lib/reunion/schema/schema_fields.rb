@@ -31,7 +31,7 @@ module Reunion
     end
 
     def merge(oldvalue,newvalue)
-      newvalue
+      newvalue.nil? ? oldvalue : newvalue
     end
 
    def query_methods
