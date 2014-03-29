@@ -8,7 +8,6 @@ module Reunion
       @input_files = []
       @overlap_deletions = []
       @drop_other_currencies = true
-      @shadow_transaction_filters = []
     end
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
@@ -20,9 +19,6 @@ module Reunion
       @overlap_deletions << {keep: keep_parser, discard: discard_parser}
     end 
 
-    def add_shadow_transactions_filter(filter)
-      @shadow_transaction_filters << filter
-    end 
 
     def drop_transactions_before(date)
       @truncate_before = date
@@ -57,12 +53,6 @@ module Reunion
           currency_mismatch.each{|t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
         end
 
-        #Flag shadow transactions
-        @shadow_transaction_filters.each do |filter|
-          af.transactions.select(&filter).each do |t|
-            t[:discard_if_unmerged] = true
-          end
-        end
 
         #Use the last transaction date for the priority
         af.transactions.each do |t| 
