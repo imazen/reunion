@@ -37,6 +37,7 @@ require 'reunion/parsers/parsers'
 require 'reunion/rules/condition_flattener'
 require 'reunion/rules/decision_tree'
 
+require 'reunion/organization_cache'
 require 'reunion/organization'
 require 'reunion/organization_transfers'
 require 'reunion/standard_file_locator'
