@@ -17,6 +17,14 @@ module Reunion
     def locate_input
     end 
 
+    def warn_about_unused_input
+      no_account_files = all_input_files.select{|f| f.account.nil? }
+      log << "Failed to match the following files to accounts:\n" + no_account_files.map{|f| f.path} * "\n" if no_account_files.length > 0
+
+      no_parser_files = all_input_files.select{|f| f.parser.nil? }
+      log << "Failed to match the following files to parsers (they were therefore not added to their accounts either):\n" + no_parser_files.map{|f| f.path} * "\n" if no_parser_files.length > 0
+
+    end 
     def parse!
       bank_accounts.each do |a|
         a.load_and_merge(schema)
@@ -31,6 +39,7 @@ module Reunion
       return if defined? @loaded
       configure
       locate_input
+      warn_about_unused_input
       parse!
       @loaded = true
       self
