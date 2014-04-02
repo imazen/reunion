@@ -6,23 +6,45 @@
 - if txn.nil?
   h3 No transaction found matching #{key}
 - unless txn.nil?
-  table.table.table-condensed
-    - txn.schema.fields.each do |name, schema|
-      tr
-        th 
-          = name
-        td
-          = txn.schema[name].format(txn[name])
-  table.table.table-condensed
-    - txn.data.each do |name, value|
-      - next if txn.schema.fields[name]
-      tr
-        th
-          = name
-        td
-          = value
-  - errors = txn.schema.validate(txn)
-  - unless errors.nil?
-    h3 Validation errors
-    p 
-      = errors
+  .row
+    .col-md-6
+      table.table.table-condensed
+        - txn.schema.fields.each do |name, schema|
+          - next unless schema.readonly
+          tr
+            th.txn_field_name 
+              = name
+            td
+              = schema.format(txn[name])
+      table.table.table-condensed
+        - txn.data.each do |name, value|
+          - next if txn.schema.fields[name]
+          tr
+            th.txn_field_name
+              = name
+            td
+              = value
+      - errors = txn.schema.validate(txn)
+      - unless errors.nil?
+        h3 Validation errors
+        p 
+          = errors
+    .col-md-6
+      table.table.table-condensed
+        tr
+          th Name
+          td Edit Value
+        
+        - txn.schema.fields.each do |k, v|
+          - next if v.readonly
+          tr
+            th.txn_field_name #{k}
+            td
+              - if v.readonly
+                = v.format(txn[k])
+              - else
+                .overrides_input_system.form-group
+                  input.form-control type="text" value=v.format(txn[k])   data-id=txn.lookup_key data-key=k 
+                  span.glyphicon
+                  span.warning.message style="min-width:4em"
+

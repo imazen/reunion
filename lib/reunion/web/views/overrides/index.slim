@@ -25,7 +25,7 @@ h3
                 p style="max-width:20em;color:gray;"
                   = r[:description2]
             - else
-              .input_system.form-group
+              .input_system.overrides.form-group
                 input.form-control type="text" value=v.format(r[k])   data-id=r.lookup_key data-key=k 
                 span.glyphicon
                 span.warning.message style="min-width:3em"
@@ -36,7 +36,7 @@ javascript:
   $(function(){
     
 
-    $('.input_system input').on("change paste", function() {
+    $('.input_system.overrides input').on("change paste", function() {
       var t = $(this);
       var parent = t.parent();
       var message = t.parent().find('.message');
