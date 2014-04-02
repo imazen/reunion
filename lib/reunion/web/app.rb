@@ -195,7 +195,7 @@ module Reunion
       end 
 
       get '/rules/repl' do
-        slim :'rules/repl', {:layout => :layout}
+        slim :'rules/repl', {:layout => :layout, :locals => {:schema =>org.schema}}
       end 
 
       post '/rules/repl' do
@@ -210,7 +210,11 @@ module Reunion
         end
 
         rs = RuleEngine.new(r)
-        {results: rs.find_matches(org.all_transactions).flatten.map{|t| t.data}}.to_json
+
+        matches = rs.find_matches(org.all_transactions).flatten
+        cleaned = matches.map{|t| {lookup_key: t.lookup_key}.merge(Hash[t.data.map{|k,v| [k,t.schema.format_field(k,v)]}])}
+        #STDERR << "Found #{matches.count} results within #{org.all_transactions.count} for \n#{code}\n #{rs.rules.inspect}\n\n #{cleaned.inspect}"
+        {results: cleaned}.to_json
       end
 
       get '/transaction/:id' do |id|

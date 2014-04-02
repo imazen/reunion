@@ -7,7 +7,10 @@ textarea#repl rows="10" cols="150"
 div#errors
 
 table.table.table-condensed#results
-
+  tr
+    - schema.field_names_tagged(:repl).each do |name|
+      th
+        = name
 
 javascript:
 
@@ -17,22 +20,39 @@ javascript:
     resultsTable = $('#results');
     replText = $('#repl')
 
+    editable_fields = #{{schema.fields.map{|k,v| v.readonly ? nil : k}.compact.to_json}};
+
+    display_fields = #{{schema.field_names_tagged(:repl).to_json}};
+
     var fetchResults = function(text){
       $.post("/rules/repl",{ruby: text},"json").done(function(data){
         //data = JSON.parse(data);
         errorsDiv.empty();
         resultsTable.empty();
+        var header = $('<tr />');
+        display_fields.forEach(function(value){
+          header.append($("<th/>").text(value));
+        });
+        resultsTable.append(header);
+
         if (data.errors){
           errorsDiv.append(data.errors);
         }
         if (data.results){
-          resultsTable.append('<tr><th></th><th></th><th></th></tr>');
-
           $.each(data.results, function(ix, row){
-            r = $('<tr/>');
-            $('<td>').text(row["date"]).appendTo(r);
-            $('<td>').text(Number(row["amount"]).toFixed(2)).appendTo(r);
-            $('<td>').text(row["description"]).appendTo(r);
+            var r = $('<tr/>');
+            display_fields.forEach(function(name){
+              if (editable_fields.indexOf(name) > -1){
+                var igroup = $("<div class='overrides_input_system form-group'/>");
+                var input = $("<input type='text'/>").addClass("form-control").val(row[name]).data('id', row["loookup_key"]).data('key', name);
+                igroup.append(input);
+                igroup.append("<span class='glyphicon'/>");
+                igroup.append("<span class='warning message override_message'/>")
+                r.append($("<td/>").append(igroup));
+              }else{
+                r.append($("<td/>").text(row[name]));
+              }
+            });
             resultsTable.append(r);
           });
 
