@@ -20,10 +20,16 @@ module Reunion
 
     def normalize(row)
       fields.each_pair do |k,v|
-        row[k] = v.normalize(row[k])
+        existed = row.has_key?(k)
+        new_value = v.normalize(row[k])
+        row[k] = new_value unless new_value.nil? && !existed
       end
       return row
     end 
+
+    def format_field(field, value)
+      fields.key?(field.to_sym) ? fields[field].format(value) : value.to_s
+    end
 
     def field_names_tagged(tag)
       field_pairs_tagged(tag).map{|pair| pair[0]}
@@ -76,6 +82,10 @@ module Reunion
       @fields = {date: DateField.new(readonly:true, critical:true), 
                  balance: AmountField.new(readonly:true, critical:true)}.merge(fields)
     end
+
+    def self.singleton
+      @@singleton ||= StatementSchema.new
+    end 
   end
 
    

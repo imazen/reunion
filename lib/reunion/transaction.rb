@@ -9,7 +9,7 @@ module Reunion
     end 
 
     attr_accessor :data
-    def_delegators :@data, :size, :[]=, :map, :each, :hash, :eql?, :delete, :key?
+    def_delegators :@data, :size, :[]=, :map, :each, :hash, :eql?, :delete, :key?, :has_key?
 
     def self.delegated_reader( *arr )
        arr.each do |a|
@@ -34,6 +34,9 @@ module Reunion
 
   class Statement < TxnBase
     delegated_reader :date, :balance
+    def schema
+      StatementSchema.singleton
+    end 
   end 
 
   class Transaction < TxnBase
