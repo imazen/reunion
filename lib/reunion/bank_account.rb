@@ -97,5 +97,9 @@ module Reunion
       @statements = @input_files.map{|af| af.statements}.flatten.compact
     end 
 
+    def normalized_transactions_report
+      Export.new.input_file_to_tsv(transactions, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
+    end
+
   end
 end 

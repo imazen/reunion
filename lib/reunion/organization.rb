@@ -8,6 +8,9 @@ module Reunion
       @log ||= []
     end
 
+    def bank_accounts_output_dir
+      File.join(root_dir, "output/accounts")
+    end 
 
     def configure
       @schema = TransactionSchema.new
@@ -29,6 +32,11 @@ module Reunion
       bank_accounts.each do |a|
         a.load_and_merge(schema)
         a.reconcile
+
+        Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
+        basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
+        File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
+        File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
       end
       @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
     end 
