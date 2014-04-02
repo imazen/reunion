@@ -245,7 +245,7 @@ module Reunion
           prep_data: prep_mjd,
           build: ->(field, args){
             field_name = "#{field}.mjd".to_sym
-            Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field,  :lambda, arg) : Re::Cond.new(field_name, :eq, to_date_mjd.call(arg)) })
+            Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field_name,  :lambda, arg) : Re::Cond.new(field_name, :eq, to_date_mjd.call(arg)) })
           }),
       SchemaMethodDefinition.new(schema_field: self, name: :after, example: "'2011-9-11'",
         prep_data: prep_mjd,
