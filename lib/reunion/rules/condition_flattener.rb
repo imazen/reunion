@@ -11,7 +11,9 @@ module Reunion
           return [[tree]] if Cond === tree
           return tree.conditions.map{|c| [c]} if Or === tree
 
-          raise "Failed to collapse to 1 AND: #{tree.inspect}" unless And === tree
+          return [[]] if tree.nil?
+
+          raise "Failed to collapse to 1 AND: #{tree.inspect}" unless And === tree 
 
           #should result in one and containing lots of ors. 
           permute_ors(tree.conditions)
