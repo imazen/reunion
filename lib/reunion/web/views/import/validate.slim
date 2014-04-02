@@ -29,3 +29,10 @@
                     = err[:field]
                   | : 
                   = err[:message]
+
+h3 Log
+
+pre
+  - org.log.each do |line|
+    = "\n"
+    = line 

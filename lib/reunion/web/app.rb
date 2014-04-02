@@ -86,7 +86,7 @@ module Reunion
 
       get '/import/validate' do
         validation_errors = org.all_transactions.map{|t| {txn: t, errors: t[:schema].validate(t)} }.select{|r| !r[:errors].nil?}
-        slim :'import/validate', {layout: :layout, :locals => {:errors => validation_errors}}
+        slim :'import/validate', {layout: :layout, :locals => {:errors => validation_errors, :org => org}}
       end 
 
       get '/bank' do
@@ -126,10 +126,7 @@ module Reunion
         org.all_transactions.select do |t|
           keep = true
           keep = false if t[:transfer_pair]
-          keep = false if t.date < Date.parse('2013-03-16')
-          keep = false if t.date > Date.parse('2014-03-19')
           keep = false if [:income, :owner_draw, :fees, :refunds].include?(t[:tax_expense])
-          keep = false unless t[:rebill].to_s.empty?
           keep
         end
       end 
