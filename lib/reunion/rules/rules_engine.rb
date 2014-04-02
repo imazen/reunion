@@ -78,14 +78,14 @@ module Reunion
       modified
     end 
     def find_matches(transactions)
-      prep_transactions(transactions)
-      transactions.select do |t|
+      prepped = prep_transactions(transactions)
+      prepped.select do |t|
         matches = false
         @tree.get_results(t) do |rule|
           matches = true
         end
         matches
-      end
+      end.map{|p| p[:_txn]}
     end 
 
   end 
