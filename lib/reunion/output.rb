@@ -1,5 +1,27 @@
 class Reunion::Export
 
+
+  def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority])
+    main_columns = [:id, :date, :amount, :description]
+    drop_columns.concat(main_columns)
+
+    data = txns.map do |t| 
+      remainder = {}.merge(t.data)
+      remainder = remainder.delete_if{|k,v| v.nil? || ((v.is_a?(Array) || v.is_a?(String)) && v.empty?) }
+      remainder.each_pair{ |k,v| remainder[k] = t.schema.format_field(k,v)}
+
+
+      row = Hash[main_columns.map{|k| remainder.key?(k) ? [k, remainder[k]] : nil}.compact]
+      drop_columns.each{|c| remainder.delete(c)}
+      row[:json] = JSON.generate(remainder)
+      row
+    end
+    pretty_tsv([{name:"Id"},{name: "Date"},{name:"Amount"},
+                {name:"Description"},{name:"Json"}],data)
+  end
+
+
+
   def pretty_reconcile_tsv(records)
     pretty_tsv([{name: "Date", format: lambda {|v| v.strftime("%Y-%m-%d")}},
          {name:"Amount", format: "%.2f"},

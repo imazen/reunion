@@ -53,7 +53,7 @@ module Reunion
           currency_mismatch.each{|t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
         end
 
-
+       
         #Use the last transaction date for the priority
         af.transactions.each do |t| 
           t[:priority] ||= af.last_txn_date
@@ -81,12 +81,18 @@ module Reunion
       #Exclude discarded transactions
       txns = txns.select{|t| t[:discard].nil?}
 
+      @input_files.each do |af|
+         af.write_normalized(currency)
+      end 
+      
+
       #Merge duplicate transactions from different sources
       txns = merge_duplicate_transactions(txns)
       
       #Assign sub-indexes to 'duplicate' transactions so we can reference them in a persistent manner
       OverrideSet.set_subindexes(txns)
-      
+
+
       @transactions = txns
       @statements = @input_files.map{|af| af.statements}.flatten.compact
     end 
