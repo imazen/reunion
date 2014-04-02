@@ -98,7 +98,7 @@ module Reunion
     end 
 
     def normalized_transactions_report
-      Export.new.input_file_to_tsv(transactions, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
+      Export.new.input_file_to_tsv(transactions + statements, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
     end
 
   end
