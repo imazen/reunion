@@ -16,7 +16,7 @@ module Reunion
       @changes = changes 
     end 
 
-    attr_accessor :account_str, :date_str, :amount_str, :description, :subindex, :changes, :txn_id 
+    attr_accessor :account_str, :date_str, :amount_str, :description, :subindex, :changes, :txn_id, :schema
 
     def lookup_key_basis
       [account_str,date_str,amount_str,description.strip.squeeze(" ").downcase,subindex.to_s] * "|"
@@ -31,27 +31,23 @@ module Reunion
     end 
 
     def changes_json
+      fmt = Hash[changes.to_a.map do |pair| 
+        pair[1].nil? ? pair : [pair[0],schema.format_field(pair[0], pair[1])]
+      end]
       JSON.generate(changes)
     end 
 
     def load_changes_from_json(str)
       obj = JSON.parse(str)
-      @changes = symbolfy(obj)
+      raise "Don't know how to load anything except a hash #{obj.inspect}" unless obj.is_a?(Hash)
+      obj = Hash[obj.map do |k,v| 
+        key = k.to_sym
+        value = schema[key] ? schema[key].normalize(v) : v.to_sym
+        [key,value]
+      end]
+      @changes = obj
     end 
 
-    def symbolfy(obj)
-      if obj.is_a? Array
-        obj.map{|v|symbolfy(v)}
-      elsif obj.is_a? Hash
-        Hash[obj.to_a.map{ |pair| [symbolfy(pair[0]), symbolfy(pair[1])]}]
-      elsif obj.is_a? String 
-        obj.strip.downcase.to_sym
-      elsif obj.nil?
-        nil
-      else
-        raise "Don't know how to symbolfy #{obj.inspect}"
-      end 
-    end 
 
     def ==(o)
       o.class == self.class && o.state == state
@@ -67,11 +63,12 @@ module Reunion
 
   class OverrideSet
 
-    attr_accessor :overrides, :by_info, :filename
+    attr_accessor :overrides, :by_info, :filename, :schema
 
-    def initialize()
+    def initialize(schema)
       @overrides ||= {}
       @by_info ||= {}
+      @schema = schema
     end
 
     def to_tsv_str
@@ -80,12 +77,12 @@ module Reunion
        overrides.values.map{|ov| {id: ov.txn_id, account: ov.account_str, date: ov.date_str, amount: ov.amount_str, description: ov.description, subindex: ov.subindex.to_s, changes: ov.changes_json}})
     end
 
-    def self.load(filename)
+    def self.load(filename, schema)
       if File.exist? filename
         contents = File.read(filename)
-        set = from_tsv_str(contents)
+        set = from_tsv_str(contents, schema)
       else
-        set = OverrideSet.new
+        set = OverrideSet.new(schema)
       end 
       set.filename = filename
 
@@ -97,16 +94,17 @@ module Reunion
       File.write(path, to_tsv_str)
     end 
 
-    def self.from_tsv_str(contents)
+    def self.from_tsv_str(contents, schema)
       a = StrictTsv.new(contents.encode('UTF-8').rstrip).parse
 
-      set = OverrideSet.new
+      set = OverrideSet.new(schema)
 
       by_primary = []
       by_info = []
 
       a.each do |r|
         ov = Override.new
+        ov.schema = schema
         ov.account_str = r[:account].strip.downcase
         ov.txn_id = r[:id].strip.downcase
         ov.txn_id = nil if ov.txn_id.empty?
@@ -133,6 +131,7 @@ module Reunion
 
     def set_override(txn,changes)
       ov = Override.new(txn,changes)
+      ov.schema = schema
       overrides[ov.txn_id_digest || ov.lookup_digest] = ov 
       by_info[ov.lookup_digest] = ov.txn_id_digest unless ov.txn_id_digest.nil?
     end 

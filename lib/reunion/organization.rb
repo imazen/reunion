@@ -85,7 +85,7 @@ module Reunion
       
       #RubyProf.start
       time = Benchmark.measure{
-        @overrides = OverrideSet.load(overrides_path)
+        @overrides = OverrideSet.load(overrides_path, schema)
         @overrides.apply_all(all_transactions)
         @rule_sets = create_rule_sets
         @rule_sets.each do |r|
