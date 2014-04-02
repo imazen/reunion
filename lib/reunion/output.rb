@@ -2,7 +2,8 @@ class Reunion::Export
 
 
   def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority])
-    main_columns = [:id, :date, :amount, :description]
+    main_columns = [:date, :amount, :description]
+    main_columns.unshift(:id) if txns.count{|t| t[:id]} > txns.count * 2 / 3
     drop_columns.concat(main_columns)
 
     data = txns.map do |t| 
@@ -16,8 +17,7 @@ class Reunion::Export
       row[:json] = JSON.generate(remainder)
       row
     end
-    pretty_tsv([{name:"Id"},{name: "Date"},{name:"Amount"},
-                {name:"Description"},{name:"Json"}],data)
+    pretty_tsv((main_columns + [:json]).map{|name| {name: name.to_s.split.map(&:capitalize).join(' ')}}, data)
   end
 
 
