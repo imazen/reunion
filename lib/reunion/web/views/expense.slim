@@ -3,17 +3,23 @@ h3
   | Tax Expense Category: 
   = query.downcase
 
+ul.nav.nav-pills
+  li: a href="/expense/allyears/#{query}" All years
+  - years.each do |y|
+    li
+      a href="/expense/#{y}/#{query}"
+        = y 
 
 ul.nav.nav-pills
   li
-    a href="/expense"
+    a href="/expense/#{year}"
       | Overview
   li
-    a href="/expense/none"
+    a href="/expense/#{year}/none"
       | Untagged
   - tax_expense_names.each do |name|
     li
-      a href="/expense/#{name}" 
+      a href="/expense/#{year}/#{name}" 
         == name
 
 
@@ -51,7 +57,7 @@ ul.nav.nav-pills
           |   
           = r[:currency]
 
-- deductible_categories = [:advertising, :contract_labor, :insurance, :meals, :misc, :office, :property_rent, :section179, :supplies, :travel, :utilities, :home_office]
+- deductible_categories = [:advertising, :fees, :refunds, :contract_labor, :insurance, :meals, :misc, :office, :property_rent, :section179, :supplies, :travel, :utilities, :home_office]
 
 - if defined?(txns)
   table.table.table-condensed
