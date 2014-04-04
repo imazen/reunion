@@ -167,7 +167,24 @@ module Reunion
         slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
       end
 
-      get '/expense/?:year?' do |year| 
+      set :dump_errors, true
+
+      set :show_exceptions, false
+
+      get '/expense/:year/:query/?' do |year, query|
+        list = org.all_transactions.map{|t| t[:tax_expense]}.uniq
+        years = org.all_transactions.map{|t| t.date.year}.uniq
+        query = query.to_s.downcase.to_sym
+
+
+        results = filter_transactions(org.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
+        results = results.select{|t| t.date.year == year.to_i} if year.to_i > 1900
+
+        slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list, :years => years, :year => year}}
+      end
+
+
+      get '/expense/?:year?/?' do |year| 
 
         txns = filter_transactions(org.all_transactions)
         all_txns = filter_transactions(org.all_transactions, false)
@@ -180,21 +197,6 @@ module Reunion
         slim :expense, {layout: :layout, :locals => {:query => "", :tax_expense_names => list, :txns => txns, :all_txns => all_txns, :years => years, :year => year}}
       end
 
-      set :dump_errors, true
-
-      set :show_exceptions, false
-
-      get '/expense/:year/:query' do |year, query|
-        list = org.all_transactions.map{|t| t[:tax_expense]}.uniq
-        years = org.all_transactions.map{|t| t.date.year}.uniq
-        query = query.to_s.downcase.to_sym
-
-
-        results = filter_transactions(org.all_transactions).select{|t| query == :none ? t[:tax_expense].to_s.empty? : t[:tax_expense] == query}
-        results = results.select{|t| t.date.year == year.to_i} if year.to_i > 1900
-
-        slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list, :years => years, :year => year}}
-      end
 
       get '/rules' do
         rules = org.rule_sets
