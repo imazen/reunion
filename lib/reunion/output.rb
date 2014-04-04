@@ -61,12 +61,11 @@ class Reunion::Export
 
     #Now we hav a table of strings and widths
     output = ""
-    output << types.each_with_index.map { |t,i| t[:name].ljust(widths[i]) } * "\t"
+    output << types.each_with_index.map { |t,i| t == types.last ? t[:name] : t[:name].ljust(widths[i]) } * "\t"
     output << "\n"
     table.each do |row|
       row.each_with_index do |v,i|
-        output << v.ljust(widths[i]) 
-        output << "\t" unless (i == widths.length - 1)
+        output << ((i == widths.length - 1) ? v.to_s : (v.ljust(widths[i]) + "\t"))
       end
       output << "\n"
     end
