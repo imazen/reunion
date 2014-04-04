@@ -130,7 +130,9 @@ module Reunion
     end 
 
     def set_override(txn,changes)
+      old = by_txn(txn)
       ov = Override.new(txn,changes)
+      ov.changes = {}.merge(old.changes).merge(ov.changes)
       ov.schema = schema
       overrides[ov.txn_id_digest] = ov  if ov.txn_id_digest
       overrides[ov.lookup_digest] = ov
