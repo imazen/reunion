@@ -132,7 +132,8 @@ module Reunion
     def set_override(txn,changes)
       ov = Override.new(txn,changes)
       ov.schema = schema
-      overrides[ov.txn_id_digest || ov.lookup_digest] = ov 
+      overrides[ov.txn_id_digest] = ov  if ov.txn_id_digest
+      overrides[ov.lookup_digest] = ov
       by_info[ov.lookup_digest] = ov.txn_id_digest unless ov.txn_id_digest.nil?
     end 
 
