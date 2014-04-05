@@ -186,6 +186,8 @@ module Reunion
 
       get '/expense/?:year?/?' do |year| 
 
+        year ||= "allyears"
+
         txns = filter_transactions(org.all_transactions)
         all_txns = filter_transactions(org.all_transactions, false)
         
