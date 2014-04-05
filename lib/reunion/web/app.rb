@@ -144,7 +144,7 @@ module Reunion
 
         txn = org.all_transactions.select{|t| t.lookup_key == id}.first
 
-        existing_override = org.overrides.by_digest(id) 
+        existing_override = org.overrides.by_txn(txn) 
 
         changes = existing_override.nil? ? {} : existing_override.changes
         

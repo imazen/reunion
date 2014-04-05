@@ -11,12 +11,11 @@ module Reunion
         @amount_str = "%.2f" %  txn.amount
         @description = txn.description
         @subindex = txn[:subindex]
-        @txn_id = txn[:id]
       end
       @changes = changes 
     end 
 
-    attr_accessor :account_str, :date_str, :amount_str, :description, :subindex, :changes, :txn_id, :schema
+    attr_accessor :account_str, :date_str, :amount_str, :description, :subindex, :changes, :schema
 
     def lookup_key_basis
       [account_str,date_str,amount_str,description.strip.squeeze(" ").downcase,subindex.to_s] * "|"
@@ -24,10 +23,6 @@ module Reunion
 
     def lookup_digest
       @lookup_digest ||= Digest::SHA1.hexdigest(lookup_key_basis)
-    end 
-
-    def txn_id_digest
-      @txn_id_digest ||= txn_id.to_s.empty? ? nil : Digest::SHA1.hexdigest(txn_id)
     end 
 
     def changes_json
@@ -57,7 +52,7 @@ module Reunion
     protected
 
     def state
-      [@account_str, @date_str, @amount_str, @description,@subindex,@changes,@txn_id]
+      [@account_str, @date_str, @amount_str, @description,@subindex,@changes]
     end
   end
 
@@ -67,14 +62,16 @@ module Reunion
 
     def initialize(schema)
       @overrides ||= {}
-      @by_info ||= {}
       @schema = schema
     end
 
     def to_tsv_str
       e = Export.new
-      e.pretty_tsv([{name: "Account"},{name:"Id"},{name: "Date"},{name:"Amount"},{name:"Description"},{name:"Subindex"},{name:"Changes"}],
-       overrides.values.map{|ov| {id: ov.txn_id, account: ov.account_str, date: ov.date_str, amount: ov.amount_str, description: ov.description, subindex: ov.subindex.to_s, changes: ov.changes_json}})
+      cols = [{name: "Account"},{name: "Date"},{name:"Amount"},{name:"Description"},{name:"Subindex"},{name:"Changes"}]
+      rows = overrides.values.map{|ov| {account: ov.account_str, date: ov.date_str, amount: ov.amount_str, description: ov.description, subindex: ov.subindex.to_s, changes: ov.changes_json}}
+
+      rows.sort_by!{|r| [r[:date],r[:account], r[:description], r[:amount], r[:subindex]] }
+      e.pretty_tsv(cols, rows)
     end
 
     def self.load(filename, schema)
@@ -100,33 +97,24 @@ module Reunion
       set = OverrideSet.new(schema)
 
       by_primary = []
-      by_info = []
 
       a.each do |r|
         ov = Override.new
         ov.schema = schema
         ov.account_str = r[:account].strip.downcase
-        ov.txn_id = r[:id].strip.downcase
-        ov.txn_id = nil if ov.txn_id.empty?
         ov.date_str = Date.parse(r[:date]).strftime("%Y-%m-%d")
         ov.amount_str = "%.2f" % BigDecimal.new(r[:amount].gsub(/[\$,]/, ""))
         ov.description = r[:description].gsub(/\s+/," ").strip
         ov.subindex = Integer(r[:subindex].strip)
         ov.load_changes_from_json(r[:changes])
-        by_primary << [ov.txn_id_digest || ov.lookup_digest, ov]
-        by_info << [ov.lookup_digest, ov.txn_id_digest] unless ov.txn_id_digest.nil?
+        by_primary << [ov.lookup_digest, ov]
       end
       set.overrides = Hash[by_primary]
-      set.by_info = Hash[by_info]
       set
     end
 
     def by_txn(txn)
-      by_digest(txn.lookup_key)
-    end 
-
-    def by_digest(digest)
-      overrides[digest] || overrides[by_info[digest]]
+      overrides[txn.lookup_key]
     end 
 
     def set_override(txn,changes)
@@ -134,9 +122,7 @@ module Reunion
       ov = Override.new(txn,changes)
       ov.changes = {}.merge(old.changes).merge(ov.changes) if old && old.changes
       ov.schema = schema
-      overrides[ov.txn_id_digest] = ov  if ov.txn_id_digest
       overrides[ov.lookup_digest] = ov
-      by_info[ov.lookup_digest] = ov.txn_id_digest unless ov.txn_id_digest.nil?
     end 
 
     def self.set_subindexes(absolutely_all_transactions)

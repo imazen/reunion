@@ -71,7 +71,6 @@ module Reunion
 
 
     def lookup_key_basis 
-      return id.to_s unless id.to_s.empty?
       raise "Transaction without subindex! Run subindex_all on ALL transactions" if data[:subindex].nil?
       [account_sym,date_str,amount_str,description.strip.squeeze(" ").downcase,data[:subindex].to_s] * "|"
     end 
