@@ -1,7 +1,7 @@
 
 - @files = files.sort_by{|f| f.last_txn_date || Date.today}.stable_sort_by{|f| (f.account.nil? || f.account.name.nil?) ? "None" : f.account.name}
-- @is_invalid = ->(f){f.account.nil? || f.parser.nil? || !f.invalid_transactions.empty?}
-- @is_warning = ->(f){f.transactions.any?{|t|t[:discard]}}
+- @is_invalid = ->(f){f.account.nil? || f.parser.nil? || f.invalid_transactions.nil? || !f.invalid_transactions.empty?}
+- @is_warning = ->(f){f.transactions.nil? || f.transactions.any?{|t|t[:discard]}}
 - @files = @files.stable_sort_by{|f| @is_invalid.call(f) ? 1 : @is_warning.call(f) ? 2 : 3}
 table.table.table-condensed
   tr
@@ -21,7 +21,7 @@ table.table.table-condensed
         = f.parser.nil? ? "No parser found" : f.parser.name.gsub("Reunion::", "")
       td
         = f.account.nil? ? "No account found" : f.account.name + " - " + f.account.currency.to_s
-      - unless f.parser.nil? || f.account.nil? 
+      - unless f.parser.nil? || f.account.nil? || f.transactions.nil? 
         td
           = f.transactions.select{|t|t[:discard].nil?}.count.to_s + "/" + f.transactions.count.to_s
         td
