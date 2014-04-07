@@ -1,0 +1,55 @@
+- if r.title
+  h3
+    = r.title
+
+- if r.breadcrumbs
+  ul.breadcrumb
+    - r.breadcrumbs.each do |crumb|
+      - if crumb[:path].nil? 
+        li.active
+          = crumb[:name]
+      - else
+        li
+          a href=(basepath + crumb[:path])
+            = crumb[:name]
+            |  
+            span.divider  
+
+
+- if r.navs
+  ul.nav.nav-pills
+    - if r.nav_title
+      li.disabled
+        = r.nav_title
+    - r.navs.each do |name, path| 
+      li
+        a href=(path)
+          = name
+
+== slim :report_summary,:layout => false,  :locals => {r: r, basepath: basepath}
+
+
+- if r.transactions && r.schema
+  table.table.table-condensed
+    tr
+      - r.schema.field_names_tagged(:rebill_form).each do |name|
+        - next if name == :description2
+        th #{name}
+    - page = r.transactions.take(100)
+    - page.each do |row|
+      tr id=row.lookup_key
+        - r.schema.field_pairs_tagged(:rebill_form).each do |k,v|
+          - next if k == :description2
+          td
+            - if v.readonly
+              a href="/transaction/#{row.lookup_key}"
+                = v.format(row[k])
+              - if k == :description && row[:description2]
+                p style="max-width:20em;color:gray;"
+                  = row[:description2]
+            - else
+              .overrides_input_system.form-group
+                input.form-control type="text" value=v.format(row[k])   data-id=row.lookup_key data-key=k 
+                span.glyphicon
+                span.warning.message style="min-width:3em"
+

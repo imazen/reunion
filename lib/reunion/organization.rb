@@ -112,6 +112,22 @@ module Reunion
       #binding.pry
     end
 
+    def reports
+      []
+    end
+
+    def generate_report(slugs)
+      #array of report specs
+      gen = ReportGenerator.new
+      txns = all_transactions
+      #RubyProf.start
+      report = gen.generate(slugs,reports, ReportDataSource.new(txns,txns, schema))
+      #result = RubyProf.stop
+      #printer = RubyProf::FlatPrinter.new(result)
+      #printer.print(STDERR)
+      report 
+    end
+
     attr_reader :rule_sets, :overrides
 
     attr_reader :transfer_pairs, :unmatched_transfers

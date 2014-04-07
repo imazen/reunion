@@ -48,6 +48,14 @@ require 'reunion/bank_account_reconcile'
 
 require 'reunion/input_file'
 
+require 'reunion/reports/report_data_source'
+require 'reunion/reports/report_generator'
+require 'reunion/reports/report_calculations'
+require 'reunion/reports/report'
+require 'reunion/reports/field_value_report'
+require 'reunion/reports/by_year_report'
+
+
 require 'reunion/transaction'
 require 'reunion/overrides'
 require 'reunion/rules/rules'
