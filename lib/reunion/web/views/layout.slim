@@ -54,12 +54,17 @@ html lang="en"
               form action="/reparse" method="post"
                 button.navbar-btn.btn.btn-default type="submit" 
                   span.glyphicon.glyphicon-refresh
-                  |  Reparse
+                  |  Parse
             li
               form action="/recompute" method="post"
                 button.navbar-btn.btn.btn-default type="submit" 
-                  span.glyphicon.glyphicon-refresh
-                  |  Recompute
+                  span.glyphicon.glyphicon-filter
+                  |  Compute
+            li
+              form action="/export" method="post"
+                button.navbar-btn.btn.btn-default type="submit" 
+                  span.glyphicon.glyphicon-floppy-disk
+                  |  Reports
 
     .container-fluid
       /

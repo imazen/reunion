@@ -117,16 +117,22 @@ module Reunion
     end
 
     def generate_report(slugs)
-      #array of report specs
       gen = ReportGenerator.new
       txns = all_transactions
-      #RubyProf.start
       report = gen.generate(slugs,reports, ReportDataSource.new(txns,txns, schema))
-      #result = RubyProf.stop
-      #printer = RubyProf::FlatPrinter.new(result)
-      #printer.print(STDERR)
       report 
     end
+
+    def export_reports!(report_list = nil)
+      exp = ReportExporter.new
+      datasource = ReportDataSource.new(all_transactions,all_transactions, schema)
+      report_list ||= reports
+      report_list.each do |r|
+        result = ReportGenerator.new.generate([r.slug], report_list, datasource)
+        exp.export(result, File.join(root_dir, "output/reports"))
+      end
+    end
+
 
     attr_reader :rule_sets, :overrides
 

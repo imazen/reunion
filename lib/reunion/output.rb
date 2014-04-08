@@ -1,5 +1,8 @@
 class Reunion::Export
 
+  def transactions_to_tsv(txns)
+    input_file_to_tsv(txns, drop_columns: [:subindex, :schema, :source, :priority])
+  end
 
   def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority])
     main_columns = [:date, :amount, :description]
@@ -63,6 +66,28 @@ class Reunion::Export
     output = ""
     output << types.each_with_index.map { |t,i| t == types.last ? t[:name] : t[:name].ljust(widths[i]) } * "\t"
     output << "\n"
+    table.each do |row|
+      row.each_with_index do |v,i|
+        output << ((i == widths.length - 1) ? v.to_s : (v.ljust(widths[i]) + "\t"))
+      end
+      output << "\n"
+    end
+    output
+  end
+
+  def pretty_tsv_from_arrays(headers, rows)
+    #Stringify and remove invalid characters
+    table = ([headers] + rows).map do |r|
+      r.map{|v| (v || "").to_s.gsub(/\t\r\n/,"")}
+    end
+    #calculate widths
+    widths = []
+    table.each do |newrow|
+      newrow.each_with_index do |v, ix|
+        widths[ix] = [widths[ix] || 0, v.length].max
+      end
+    end
+    output = ""
     table.each do |row|
       row.each_with_index do |v,i|
         output << ((i == widths.length - 1) ? v.to_s : (v.ljust(widths[i]) + "\t"))

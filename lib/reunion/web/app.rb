@@ -76,6 +76,11 @@ module Reunion
         redirect request.referer
       end
 
+      post '/export' do
+        org.export_reports!
+        redirect request.referer
+      end
+
       get '/import/sources' do
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 

@@ -28,7 +28,7 @@ module Reunion
       @slug = slug
       @label = label
       @filter = filter
-      @calculator = ->(txns){ReportValueSum.sum_amounts(txns).to_usd}
+      @calculator = ->(txns){ReportValueSum.sum_amounts(txns).to_cur}
       @inherit_filters = inherit_filters
     end
 
@@ -56,7 +56,7 @@ module Reunion
         sum = ReportValueSum.sum_amounts(txns) * factor
         debits = ReportValueSum.sum_amounts(txns){|t| t.amount > 0} * factor
         credits = ReportValueSum.sum_amounts(txns){|t| t.amount < 0} * factor
-        "#{debits.to_usd} + #{credits.to_usd} = #{sum.to_usd}"
+        "#{sum.to_cur} (#{debits.to_cur} #{credits < 0 ? '' : '+'} #{credits.to_cur.gsub(/\-/,'- ')})"
       }
     end
   end
