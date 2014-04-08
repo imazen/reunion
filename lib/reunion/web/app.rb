@@ -183,7 +183,12 @@ module Reunion
         slim :expense, {:layout => :layout, :locals => {:results => results, :query => query, :tax_expense_names => list, :years => years, :year => year}}
       end
 
-      get %r{^\/reports(.*+)$} do |slugs|
+      get '/reports/?' do
+        list = org.reports.map{|r| {name: r.title, path: "/reports/#{r.slug}"}}
+        slim :report_list,  {:layout => :layout, :locals => {:reports => list}}
+      end 
+
+      get %r{^\/reports/?(.+)$} do |slugs|
         slugs = slugs.split('/').compact.reject{|s| s.empty?}
         STDERR << "Locating report " + slugs.join('/')  + "\n"
         r = org.generate_report(slugs)

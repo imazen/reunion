@@ -1,0 +1,6 @@
+
+ul.nav.nav-pills.nav-stacked
+  - reports.each do |r| 
+    li
+      a href=(r[:path])
+        = r[:name]
