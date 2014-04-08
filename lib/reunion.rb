@@ -20,13 +20,17 @@ class Array
   end
 end
 class Numeric
-    def to_usd
-        delimiter = ','
-        separator = '.'
-        parts = ("%.2f" % self).split(separator)
-        parts[0].gsub!(/(\d)(?=(\d\d\d)+(?!\d))/, "\\1#{delimiter}")
-        "$" + parts.join(separator)
-    end
+  def to_usd
+    "$" + to_cur 
+  end
+
+  def to_cur
+    delimiter = ','
+    separator = '.'
+    parts = ("%.2f" % self).split(separator)
+    parts[0].gsub!(/(\d)(?=(\d\d\d)+(?!\d))/, "\\1#{delimiter}")
+    parts.join(separator)
+  end 
 end
 
 module Reunion
