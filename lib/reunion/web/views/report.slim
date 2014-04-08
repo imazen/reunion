@@ -35,12 +35,12 @@
       - r.schema.field_names_tagged(:rebill_form).each do |name|
         - next if name == :description2
         th #{name}
-    - page = r.transactions.take(100)
+    - page = r.transactions #.take(100)
     - page.each do |row|
       tr id=row.lookup_key
         - r.schema.field_pairs_tagged(:rebill_form).each do |k,v|
           - next if k == :description2
-          td
+          td class=("field_#{k}")
             - if v.readonly
               a href="/transaction/#{row.lookup_key}"
                 = v.format(row[k])

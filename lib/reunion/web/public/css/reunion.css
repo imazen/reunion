@@ -2,3 +2,14 @@
 
 .txn_field_name{max-width:4em;}
 .override_message{min-width:3em;}
+.navbar{
+  margin-bottom:0px;
+}
+h3{
+  margin-bottom:5px;
+  margin-top:0px;
+}
+
+td.field_date{
+  white-space: nowrap;
+}
