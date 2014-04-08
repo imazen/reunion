@@ -1,12 +1,9 @@
 module Reunion
   
 
- 
-  ReportOptions = Struct.new(:sort_by, :sort_order, :hide_transactions, :hide_subreport_summaries)
-
-
   class Report
-    def initialize(slug, title: slug, filter: ->(t){true}, subreports: [], calculations: [], options: ReportOptions.new)
+    def initialize(slug, title: slug, filter: ->(t){true}, subreports: [], 
+      calculations: [], options: {})
       @slug = slug
       @title = title || slug.to_s.gsub("_\-", " ").capitalize
       @filter = filter
@@ -23,36 +20,36 @@ module Reunion
     end
 
     def standard_calculations
-      @@debit_lambda ||= ->(t){t.amount < 0}
+      #persistent lambda objects allows result caching within datasource
+      @@debit_lambda ||= ->(t){t.amount < 0} 
       @@credit_lambda ||= ->(t){t.amount > 0}
       a = []
-      a << ReportValueTxnCount.new("TxnCt")
-      a << ReportValueSum.new("Net")
-      a << ReportValueDurationAvg.new("30d Net Avg")
-      a << ReportValueTxnCount.new("Debit Ct", filter: @@debit_lambda)
-      a << ReportValueSum.new("Debits", filter: @@debit_lambda) 
-      a << ReportValueTxnCount.new("Credits Ct", filter: @@credit_lambda)
-      a << ReportValueSum.new("Credits", filter: @@credit_lambda)
+      a << ReportValueSum.new(:net, "Net")
+      a << ReportValueDurationAvg.new(:avg30, "30d Avg")
+      a << ReportValueSum.new(:debit, "Debits", filter: @@debit_lambda) 
+      a << ReportValueSum.new(:credit, "Credits", filter: @@credit_lambda)
       @@standard_calculations ||= a
     end 
 
-    def get_calculations_by_currency(datasource)
-      calculations = @calculations + standard_calculations
+    def calculate_per_currency(calculations, datasource)
       datasource = datasource.filter(&filter) if @filter
-      Hash[datasource.all_currencies.map{ |currency|
-        calcs = Hash[calculations.map do |c|
+      results = []
+      calculations.each do |c|
+        results.concat(datasource.all_currencies.map{ |currency|
           if c.currency && c.value
-            c.currency == currency ? [c.label,c.value] : nil
-          else
+            c.currency == currency ?  {currency: currency, slug: c.slug, label: c.label,value: c.value} : nil
+          elsif c.calculator
             data = c.inherit_filters ? datasource : datasource.unfilter
             data = data.filter(&(c.filter)) if c.filter
             txns = data.filter_currency(currency).results
-            [c.label, c.calculator.call(txns)]
+            {currency: currency, slug: c.slug, label: c.label,value: c.calculator.call(txns), txn_count: txns.count}
+          else
+            raise "Calcuations must have a lambda or a value. #{c.inspect}"
           end 
-        end.compact]
-        [currency, calcs]
-      }]
-    end 
+        }.compact)
+      end
+      results 
+    end
 
   end
 

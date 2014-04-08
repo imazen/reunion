@@ -1,32 +1,35 @@
 module Reunion
   
   class ReportValue
-    attr_accessor :label, :value, :currency, :calculator, :filter, :inherit_filters
-    def initialize(label, value=nil, currency=nil, calculator: nil, filter: nil)
+    attr_accessor :slug, :label, :value, :currency, :calculator, :filter, :inherit_filters
+    def initialize(slug, label, value=nil, currency=nil, calculator: nil, filter: nil, inherit_filters: true)
+      @slug = slug
       @label = label
       @value = value
       @currency = currency
       @calculator = calculator
-      @inherit_filters = true
+      @inherit_filters = inherit_filters
       @filter = filter
     end
   end
 
   class ReportValueTxnCount < ReportValue
-    def initialize(label = "Txn Ct",filter: nil)
+    def initialize(slug, label,filter: nil, inherit_filters: true)
+      @slug = slug
       @label = label
       @filter = filter
       @calculator = ->(txns){txns.count}
-      @inherit_filters = true
+      @inherit_filters = inherit_filters
     end
   end
 
   class ReportValueSum < ReportValue
-    def initialize(label,filter: nil)
-      @label = label || "Sum"
+    def initialize(slug, label,filter: nil, inherit_filters: true)
+      @slug = slug
+      @label = label
       @filter = filter
       @calculator = ->(txns){ReportValueSum.sum_amounts(txns).to_usd}
-      @inherit_filters = true
+      @inherit_filters = inherit_filters
     end
 
     def self.sum_amounts(txns, &filter)
@@ -38,16 +41,22 @@ module Reunion
     end
   end 
   class ReportValueDurationAvg < ReportValue
-    def initialize(label = "30d avg",days: 30, filter: nil)
+    def initialize(slug, label,days: 30, filter: nil, inherit_filters: true)
+      @slug = slug
       @label = label
       @filter = filter
-      @inherit_filters = true
+      @inherit_filters = inherit_filters
       @calculator = ->(txns){
-        sum = ReportValueSum.sum_amounts(txns)
         return nil if txns.count < 2
         duration = txns.max{|t| t.date}.date - txns.min{|t| t.date}.date
         return nil if duration < days
-        (days.to_f / duration.to_f * sum.to_f).to_usd
+
+        factor = days.to_f / duration.to_f  
+
+        sum = ReportValueSum.sum_amounts(txns) * factor
+        debits = ReportValueSum.sum_amounts(txns){|t| t.amount > 0} * factor
+        credits = ReportValueSum.sum_amounts(txns){|t| t.amount < 0} * factor
+        "#{debits.to_usd} + #{credits.to_usd} = #{sum.to_usd}"
       }
     end
   end

@@ -1,23 +1,24 @@
-- if r.calculations_by_currency
-  - cols = r.calculations_by_currency.values.map{|h| h.keys}.flatten.uniq
-  table.table.table-condensed
+- if r.summary_table
+  - headers = r.summary_table[:headers]
+  table.table.table-condensed.table-striped.table-hover
     tr
-      th Currency
-      - cols.each do |col|
+      - headers.each do |col|
         th
           = col
-    - r.calculations_by_currency.each do |currency, data|
+    - r.summary_table[:rows].each do |row|
       tr
-        td 
-          = currency
-        - cols.each do |col|
+        - row.each do |col|
           td
-            = data[col]
+            - unless col.is_a?(Array)
+              = col
+            - else
+              - col.each do |crumb|
+                - if crumb[:path].nil? 
+                  = crumb[:name]
+                - else
+                  a href=(basepath + crumb[:path])
+                    = crumb[:name]
+                  - unless crumb == col.last
+                    span.divider
+                    |  / 
 
-- if r.subreports
-  div.subreport style="border-left: 1px solid gray; padding-left:15px;"
-    - r.subreports.each do |sr|
-      h5
-        a href=(basepath + sr.path)
-          = sr.title
-      == slim :report_summary,  :locals => {r: sr, basepath: basepath}
