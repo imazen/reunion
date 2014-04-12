@@ -89,9 +89,7 @@ module Reunion
       #Merge duplicate transactions from different sources
       txns = merge_duplicate_transactions(txns)
 
-      if sort
-        txns = sort_transactions(txns)
-      end
+      txns = sort_transactions(txns)
 
       #Assign sub-indexes to 'duplicate' transactions so we can reference them in a persistent manner
       OverrideSet.set_subindexes(txns)
@@ -102,10 +100,15 @@ module Reunion
     end 
 
 
-
     def sort_transactions(txns)
-      txns.stable_sort_by do |t|
-        "#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{'%.2f' % t.amount}"
+      if sort == :standard || (!!sort == sort && sort)
+        txns.stable_sort_by do |t|
+          "#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{'%.2f' % t.amount}"
+        end
+      elsif sort.is_a?(Symbol)
+        txns.stable_sort_by{|t| t[sort]}
+      else
+        txns
       end
     end 
 
