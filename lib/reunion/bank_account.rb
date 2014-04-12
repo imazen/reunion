@@ -12,7 +12,7 @@ module Reunion
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
 
-    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema
+    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort
 
 
     def add_parser_overlap_deletion(keep_parser: nil, discard_parser: nil)
@@ -89,6 +89,10 @@ module Reunion
       #Merge duplicate transactions from different sources
       txns = merge_duplicate_transactions(txns)
 
+      if sort
+        txns = sort_transactions(txns)
+      end
+
       #Assign sub-indexes to 'duplicate' transactions so we can reference them in a persistent manner
       OverrideSet.set_subindexes(txns)
 
@@ -98,6 +102,12 @@ module Reunion
     end 
 
 
+
+    def sort_transactions(txns)
+      txns.stable_sort_by do |t|
+        "#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{'%.2f' % t.amount}"
+      end
+    end 
 
     def normalized_transactions_report
       sorted = (transactions + statements).stable_sort_by{|t| t.date_str}
