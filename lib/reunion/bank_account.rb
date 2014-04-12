@@ -88,7 +88,7 @@ module Reunion
 
       #Merge duplicate transactions from different sources
       txns = merge_duplicate_transactions(txns)
-      
+
       #Assign sub-indexes to 'duplicate' transactions so we can reference them in a persistent manner
       OverrideSet.set_subindexes(txns)
 
@@ -97,8 +97,11 @@ module Reunion
       @statements = @input_files.map{|af| af.statements}.flatten.compact
     end 
 
+
+
     def normalized_transactions_report
-      Export.new.input_file_to_tsv(transactions + statements, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
+      sorted = (transactions + statements).stable_sort_by{|t| t.date_str}
+      Export.new.input_file_to_tsv(sorted, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
     end
 
   end
