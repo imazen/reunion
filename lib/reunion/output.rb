@@ -17,6 +17,7 @@ class Reunion::Export
 
       row = Hash[main_columns.map{|k| remainder.key?(k) ? [k, remainder[k]] : nil}.compact]
       drop_columns.each{|c| remainder.delete(c)}
+      remainder = Hash[remainder.to_a.sort_by{|p| p[0]}]
       row[:json] = JSON.generate(remainder)
       row
     end
