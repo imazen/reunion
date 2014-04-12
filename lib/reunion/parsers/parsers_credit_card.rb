@@ -27,7 +27,7 @@ module Reunion
             description: l[:description], 
             amount: parse_amount(l[:amount]), 
             txn_type: parse_txn_type(l[:type]),
-            chase_type: l[:type] }
+            chase_type: l[:type] ? l[:type].strip.downcase : nil }
         }.reverse
       }
     end
