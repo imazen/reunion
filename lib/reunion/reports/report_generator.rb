@@ -64,7 +64,10 @@ module Reunion
       result.group_only = report.group_only
       unless report.group_only
         result.transactions = child_data.results
-        result.transactions = result.transactions.sort_by{|t| t[opts[:sort_by]]} if opts[:sort_by]
+        sort_field = opts[:sort_by]
+        result.transactions = result.transactions.sort_by do |t|
+          "#{sort_field ? t[:sort_field] : ''}|#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{t.date_str}|#{'%.2f' % t.amount}|#{t.account_sym}"
+        end
         result.transactions = result.transactions.reverse if opts[:sort_order] == :reverse
       end
       result.title = report.title
