@@ -4,6 +4,10 @@ module Reunion
     def parse(text)
     end
 
+    def sort_transactions(txns)
+      txns
+    end
+
     def parse_and_normalize(text, schema)
       results = parse(text)
       transactions = results[:transactions] || []
@@ -36,6 +40,8 @@ module Reunion
       results[:transactions] = transactions.map do |t| 
         Transaction.new(schema:schema, from_hash: t)
       end
+      
+      results[:transactions] = sort_transactions(results[:transactions])
 
       #Map hashes to statement objects, and assign the StatementSchema
       statement_schema = StatementSchema.new

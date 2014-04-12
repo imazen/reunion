@@ -2,6 +2,11 @@ module Reunion
 
   class ChaseCsvParser < ParserBase
 
+    def sort_transactions(txns)
+      txns.stable_sort_by do |t|
+        "#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{t.date_str}|#{'%.2f' % t.amount}"
+      end
+    end 
     def parse_txn_type(type)
       return nil if type.nil?
       case type.strip.downcase
