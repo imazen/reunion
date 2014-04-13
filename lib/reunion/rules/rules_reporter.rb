@@ -8,7 +8,8 @@ module Reunion
 
 
     def by_line_number(filename)
-      Hash[@rules.map do |r|
+      by_lines = {}
+      @rules.each do |r|
         trace = r.chain.last[:stacktrace].map{ |x|   
           x.match(/^(.+?):(\d+)(|:in `(.+)')$/); 
           [$1,$2,$4]
@@ -17,8 +18,10 @@ module Reunion
         line_number = trace.find{|a| a[0].downcase.end_with?(filename.downcase)}[1]
 
         matched_count = r.matched_transactions.uniq.count
-        [line_number.to_i,matched_count]
-      end]
+        by_lines[line_number.to_i] ||= []
+        by_lines[line_number.to_i] << matched_count
+      end
+      by_lines
     end
 
     def interpolate(text, filename)
@@ -27,8 +30,8 @@ module Reunion
       new_text = ""
       text.lines.each_with_index do |line, ix|
         new_text << line.rstrip 
-        count = line_matches[ix + 1]
-        new_text << "\t\# matched: #{count}" if count
+        counts = line_matches[ix + 1]
+        new_text << "\t\# matched: #{counts.join ', '}" if counts
         new_text << "\n"
       end
       new_text
