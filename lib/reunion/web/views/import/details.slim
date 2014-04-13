@@ -32,7 +32,7 @@
     stmnts = file.statements.map{|t| {}.merge(t.data)}
 
   - @rows = [invalid,txns, stmnts].flatten
-  - @cols = @rows.map{|h|h.keys}.flatten.uniq.compact - [:account_sym, :priority, :source, :subindex]
+  - @cols = @rows.map{|h|h.keys}.flatten.uniq.compact - [:key, :account_sym, :priority, :source, :schema, :subindex]
 
   h3 Displaying 
   p
@@ -43,16 +43,11 @@
     = file.account.name
   table.table.table-condensed
     tr
-      th _
       - @cols.each do |c|
         th
           = c
     - @rows.each do |r|
       tr class=(r[:invalid] ? "danger" : r[:discard] ? "warning" : "success")
-        td
-          - if r[:key]
-            a href=("/transaction/" + r[:key])
-              | go
         - @cols.each do |c|
           td
             = ([:amount, :balance, :balance_after].include?(c) && r[c]) ? "%.2f" % r[c] : r[c]
