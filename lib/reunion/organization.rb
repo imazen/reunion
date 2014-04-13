@@ -2,7 +2,7 @@ module Reunion
 
   class Organization
 
-    attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax
+    attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results
 
     def log
       @log ||= []
@@ -99,7 +99,10 @@ module Reunion
         @rule_sets.each do |r|
           r[:engine].run(all_transactions)
         end
-        @overrides.apply_all(all_transactions)
+        @overrides_results = @overrides.apply_all(all_transactions)
+        @overrides_results[:unused_overrides].each do |ov|
+          log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
+        end
         @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select{|t| t[:transfer]}, all_transactions)
         @unmatched_transfers = transfers.select{|t| t[:transfer_pair].nil?}
       }

@@ -138,14 +138,21 @@ module Reunion
     end 
 
     def apply_all(transactions)
+      use_count = Hash[overrides.keys.map{|k| [k, 0]}]
       transactions.each do |t|
         result = by_txn(t)
         if result
           result.changes.each_pair do |k,v|
             t[k] = v
           end
+          use_count[t.lookup_key] += 1
         end
       end
+      use_count.to_a.select{|k,c| c > 1}.each do |k,c|
+        STDERR << "Override used #{c} times: #{overrides[k].lookup_key_basis}\n"
+      end
+
+      {unused_overrides: use_count.to_a.select{|k,c| c < 1}.map{|k,c| overrides[k]}}
     end
 
   end
