@@ -172,9 +172,9 @@ module Reunion
 
       transactions = a.map do |r|
 
-        datetime = Time.strptime("#{r[:date]}|#{r[:time]}|#{r[:time_zone]}", '%m/%d/%Y|%T|%z')
+        datetime = DateTime.strptime("#{r[:date]}|#{r[:time]}|#{r[:time_zone]}", '%m/%d/%Y|%T|%z')
 
-        {date: datetime.strftime("%Y-%m-%d"), 
+        {date: datetime, 
           amount: parse_amount(r[:net]), 
           balance_after: parse_amount(r[:balance]),
           id: r[:transaction_id],
@@ -187,8 +187,7 @@ module Reunion
           paypal_country: r[:country],
           sales_tax: parse_amount(r[:sales_tax]),
           txn_fee: parse_amount(r[:fee]),
-          paypal_gross: parse_amount(r[:gross]),
-          timestamp: datetime
+          paypal_gross: parse_amount(r[:gross])
         }
       end
       transactions.reverse!
