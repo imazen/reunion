@@ -227,7 +227,7 @@ module Reunion
       get '/rules' do
         rules = org.rule_sets
         slim :rules, {:layout => :layout, :locals => {:groups => rules, :ruleset => nil, :code => nil, 
-          codehtml: nil, codecss: nil}}
+          codehtml: nil, codecss: nil, syntax: org.syntax}}
       end 
 
       get '/rules/:setname' do |setname|
@@ -244,11 +244,11 @@ module Reunion
 
 
         slim :rules, {layout: :layout, locals: {groups: rules, ruleset: set, 
-          code: code, codehtml: codehtml, codecss:codecss}}
+          code: code, codehtml: codehtml, codecss:codecss, syntax: org.syntax}}
       end 
 
       get '/repl' do
-        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema}}
+        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema, syntax: org.syntax}}
       end 
 
       post '/repl' do

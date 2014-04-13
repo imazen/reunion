@@ -2,6 +2,8 @@
 
 
 ul.nav.nav-pills
+  li
+    a href="/rules" Reference
   - groups.each do |r| 
     li
       a href=("/rules/#{r[:name].downcase}")
@@ -12,6 +14,37 @@ ul.nav.nav-pills
     == codecss
 - if codehtml
   == codehtml
+
+- if syntax && !codehtml
+  h3 Rule syntax reference
+  table.table.table-condensed
+    tr
+      th Field
+      th Methods
+
+    - used_methods = groups.map{|g| g[:rules].methods_used}.flatten.uniq
+
+    - by_field = syntax.list.group_by{|m| m.field}
+    - by_field.each do |field, methods| 
+      tr
+        td
+          strong
+            = field
+        td
+          - methods = methods.map{|m| { name: m.name || m.aliases.sort_by{|t| t.to_s.length}.first, 
+              is_action: m.kind == :action,
+              example: m.example, 
+              used: used_methods.include?(m),
+              title: "ALIASES: #{m.aliases * ', '}"}}.sort_by{|m| "#{m[:used] ? 'A_' : 'Z_'},#{m[:name]}"}
+          - methods.each do |m|
+            span.label class=(m[:used] ? "label-success" : "label-default") title=(m[:title])
+              - if m[:is_action]
+                | *
+              = m[:name]
+              - if m[:example]
+                = "(#{m[:example]})"
+            |   
+
 
 /- if ruleset
 /

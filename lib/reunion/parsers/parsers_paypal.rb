@@ -168,6 +168,8 @@ module Reunion
       # PayPal's sadistic jerks pad randomly headers with spaces, in 
       # addition to failing to escape characters in CSVs
 
+      #Did you know that they also edit history? The description can change!
+
       a = CSV.parse(text, csv_options.merge({col_sep:"\t"}))
 
       transactions = a.map do |r|
