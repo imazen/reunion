@@ -1,15 +1,25 @@
 
-h3 Show  rules
 
 
-- rules.each do |set|
+ul.nav.nav-pills
+  - groups.each do |r| 
+    li
+      a href=("/rules/#{r[:name].downcase}")
+        = r[:name]
+
+- if codecss
+  style type="text/css"
+    == codecss
+- if codehtml
+  == codehtml
+
+/- if ruleset
+/
   h3
     | Set: 
-    = set[:name]
+    = ruleset[:name]
   p
-    = set[:run_count]
-
-
+    = ruleset[:run_count]
   table.table.table-condensed
     tr
       th
@@ -20,7 +30,7 @@ h3 Show  rules
         | Change count
       th
         | Change
-    - set[:engine].rules.sort_by{|r|r.matched_transactions.count }.each do |r|
+    - ruleset[:engine].rules.sort_by{|r|r.matched_transactions.count }.each do |r|
       tr
         td
           = r.matched_transactions.to_a.count

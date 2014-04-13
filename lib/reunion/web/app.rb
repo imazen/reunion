@@ -1,6 +1,7 @@
 require "sinatra/base"
 require "slim"
 require "json"
+require "rouge"
 
 module Rack
   class CommonLogger
@@ -14,6 +15,13 @@ end
 module Reunion
   module Web
     class App < ::Sinatra::Base
+
+      set :dump_errors, true
+
+      set :show_exceptions, false
+
+
+
 
       def self.root_dir
         File.dirname(__FILE__)
@@ -218,7 +226,25 @@ module Reunion
 
       get '/rules' do
         rules = org.rule_sets
-        slim :rules, {:layout => :layout, :locals => {:rules => rules}}
+        slim :rules, {:layout => :layout, :locals => {:groups => rules, :ruleset => nil, :code => nil, 
+          codehtml: nil, codecss: nil}}
+      end 
+
+      get '/rules/:setname' do |setname|
+        rules = org.rule_sets
+
+        set = rules.find{|r| r[:name].downcase == setname}
+
+        reporter = RulesReporter.new(set[:engine])
+        code = reporter.interpolate(set[:contents], File.basename(set[:path]))
+
+        codehtml = Rouge::Formatters::HTML.new(:css_class => 'highlight').format(Rouge::Lexers::Ruby.new.lex(code))
+
+        codecss = Rouge::Themes::Base16.render(:scope => '.highlight')
+
+
+        slim :rules, {layout: :layout, locals: {groups: rules, ruleset: set, 
+          code: code, codehtml: codehtml, codecss:codecss}}
       end 
 
       get '/rules/repl' do

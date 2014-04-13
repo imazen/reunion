@@ -9,6 +9,7 @@ gem "slim"
 gem 'thin' #we use this for both development and production
 gem 'triez'
 gem 'rack-test' #Warning, needed for production
+gem 'rouge'
 
 gem "debugger", :group => :development
 gem "rerun", :git => "git://github.com/alexch/rerun.git", :group => :development

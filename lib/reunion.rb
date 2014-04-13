@@ -64,7 +64,7 @@ require 'reunion/transaction'
 require 'reunion/overrides'
 require 'reunion/rules/rules'
 require 'reunion/rules/rules_engine'
-
+require 'reunion/rules/rules_reporter'
 
 require 'reunion/rules/expectations'
 require 'reunion/output'
