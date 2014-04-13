@@ -32,13 +32,13 @@
 - if r.transactions && r.schema
   table.table.table-condensed
     tr
-      - r.schema.field_names_tagged(:rebill_form).each do |name|
+      - r.schema.field_names_tagged(:reports).each do |name|
         - next if name == :description2
         th #{name}
     - page = r.transactions #.take(100)
     - page.each do |row|
       tr id=row.lookup_key
-        - r.schema.field_pairs_tagged(:rebill_form).each do |k,v|
+        - r.schema.field_pairs_tagged(:reports).each do |k,v|
           - next if k == :description2
           td class=("field_#{k}")
             - if v.readonly
@@ -49,7 +49,7 @@
                   = row[:description2]
             - else
               .overrides_input_system.form-group
-                input.form-control type="text" value=v.format(row[k])   data-id=row.lookup_key data-key=k 
+                input.form-control type="text" value=v.format(row[k])   data-id=row.lookup_key data-key=k placeholder=k
                 span.glyphicon
                 span.warning.message style="min-width:3em"
 
