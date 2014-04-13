@@ -87,7 +87,12 @@ class Reunion::BankAccount
       result_row[:date] = row[:date] if row[:date]
       result_row[:amount] = row[:amount] if row[:amount]
       result_row[:description] = row[:description] if row[:description]
-      result_row[:source] = File.basename(row[:source].to_s) if row[:source]
+      if row[:source]
+        result_row[:source] = File.basename(row[:source].to_s)
+        input_file = input_files.find{|f| f.path == row[:source].to_s}
+        result_row[:source_digest] = input_file.path_account_digest if input_file
+      end 
+
 
       row_amount = row[:amount] ? row[:amount] : 0
       #What should the balance be after this row?

@@ -13,33 +13,37 @@ ul
   li Ending balance: #{"%.2f" % bank.ending_balance}
   li Last statement/reconciliation date: #{bank.last_balance_date ? bank.last_balance_date.strftime("%Y-%m-%d") : "None"}
 
+ruby:
+  @report = bank.reconciliation_report.map do |row|
+    next nil if row.nil?
+    r = {}.merge(row)
+    r[:date] = r[:date].strftime("%Y-%m-%d")  if r[:date] 
+    [:amount, :balance,:discrepancy].each do |key|
+      r[key] = "%.2f" % r[key] if r[key]
+    end
+    r[:class] = r[:discrepancy] ? "danger" : r && r[:amount].nil? ? "info" : "default"
+    r
+  end.compact
 
 table.table.table-condensed
   tr
-    th _
-    th Date_______
+    th Date
     th Amount
     th Balance
     th Discrep.
     th Description
     th Source
-  - bank.reconciliation_report.each do |r|
-    tr class=(r && r[:discrepancy] ? "danger" : r && r[:amount].nil? ? "info" : "default")
-      - if r
-        td
-          - if r[:key]
-            a href=("/transaction/" + r[:key])
-              | go
-        td
-          = r[:date].strftime("%Y-%m-%d") if r[:date]     
-        td
-          = "%.2f" % r[:amount] if r[:amount]
-        td
-          = "%.2f" % r[:balance] if r[:balance] 
-        td
-          = "%.2f" % r[:discrepancy] if r[:discrepancy]
-        td
-          = r[:description]
-        td
-          = r[:source]
+  - @report.each do |r|
+    tr class=(r[:class])
+      - [:date, :amount, :balance, :discrepancy, :description, :source].each do |key|
+        td class="field_#{key}"
+          - if (r[:key] && [:date, :amount, :description].include?(key))
+            a href="/transaction/#{r[:key]}"
+              = r[key]
+          - elsif (key == :source && r[:source_digest])
+            a href="/import/sources/#{r[:source_digest]}"
+              = r[:source]
+          - else
+            = r[key]
+
      
