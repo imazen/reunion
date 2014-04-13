@@ -141,7 +141,7 @@ module Reunion
           a[:balance_after] -= fee
           a[:amount] = a[:paypal_gross]
 
-
+          b[:description] = "Fee for #{b[:description]}"
           b[:amount] = fee
           b[:id] = "#{t[:id]}_fee"
           b[:txn_type] = :fee
