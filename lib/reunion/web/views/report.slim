@@ -18,12 +18,12 @@
 
 - if r.navs
   ul.nav.nav-pills
-    - if r.nav_title
+    - if r.nav_label
       li.disabled
-        = r.nav_title
+        = r.nav_label
     - r.navs.each do |name, path| 
       li
-        a href=(path)
+        a href="/reports/#{path}"
           = name
 
 == slim :report_summary,:layout => false,  :locals => {r: r, basepath: basepath}

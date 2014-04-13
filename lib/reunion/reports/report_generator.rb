@@ -75,6 +75,7 @@ module Reunion
       result.subreports = child_reports.map{|r|
         generate(slugs + [r.slug], reports, child_data,false)
       }
+      result.navs = result.subreports.map{|r| [r.name, r.path]}
       result.summary_table = generate_summary_table(result, is_root)
       result
     end
