@@ -134,20 +134,6 @@ module Reunion
       get '/search' do
         slim :search, {layout: :layout, :locals => {:query => ""}}
       end
-
-      def txns_to_workon
-        org.all_transactions.select do |t|
-          keep = true
-          keep = false if t[:transfer_pair]
-          keep = false if [:income, :owner_draw, :fees, :refunds].include?(t[:tax_expense])
-          keep
-        end
-      end 
-
-      get '/overrides' do
-        slim :'overrides/index', {layout: :layout, :locals => {:results => txns_to_workon}}
-      end
-
  
       post '/overrides/:id' do |id|
         content_type :json
