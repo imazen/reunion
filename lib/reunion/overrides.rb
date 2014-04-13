@@ -39,7 +39,7 @@ module Reunion
         key = k.to_sym
         value = schema[key] ? schema[key].normalize(v) : v.to_sym
         [key,value]
-      end]
+      end].reject{|k,v| v.nil? || v == "" || v == []}
       @changes = obj
     end 
 
@@ -121,6 +121,7 @@ module Reunion
       old = by_txn(txn)
       ov = Override.new(txn,changes)
       ov.changes = {}.merge(old.changes).merge(ov.changes) if old && old.changes
+      ov.changes = ov.changes.reject{|k,v| v.nil? || v == "" || v == []}
       ov.schema = schema
       overrides[ov.lookup_digest] = ov
     end 
