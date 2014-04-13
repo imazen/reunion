@@ -25,7 +25,7 @@ javascript:
     display_fields = #{{schema.field_names_tagged(:repl).to_json}};
 
     var fetchResults = function(text){
-      $.post("/rules/repl",{ruby: text},"json").done(function(data){
+      $.post("/repl",{ruby: text},"json").done(function(data){
         //data = JSON.parse(data);
         errorsDiv.empty();
         resultsTable.empty();

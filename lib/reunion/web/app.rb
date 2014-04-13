@@ -247,11 +247,11 @@ module Reunion
           code: code, codehtml: codehtml, codecss:codecss}}
       end 
 
-      get '/rules/repl' do
-        slim :'rules/repl', {:layout => :layout, :locals => {:schema =>org.schema}}
+      get '/repl' do
+        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema}}
       end 
 
-      post '/rules/repl' do
+      post '/repl' do
         content_type :json
         code = params[:ruby]
         r = Rules.new(org.syntax)
