@@ -188,14 +188,14 @@ module Reunion
         }),
       SchemaMethodDefinition.new(schema_field: self, name: :above, example: "5.00",
         build: ->(field, args){
-          Re::Cond.new(field, args.first, :gt, normalize(arg))
+          Re::Cond.new(field, :gt, normalize(args.first))
         }),
-      SchemaMethodDefinition.new(self, :below, "5.00",
-         ->(field, args){
-          Re::Cond.new(field, args.first, :lt, normalize(arg))
+      SchemaMethodDefinition.new(schema_field: self, name: :below, example: "5.00",
+         build: ->(field, args){
+          Re::Cond.new(field, :lt, normalize(args.first))
         }),
-      SchemaMethodDefinition.new(self, :between, "5.00",
-         ->(field, args){
+      SchemaMethodDefinition.new(schema_field: self, name: :between, example: "5.00",
+         build: ->(field, args){
           args = args.map{|v| normalize(v)}
           low = args.min
           high = args.max
