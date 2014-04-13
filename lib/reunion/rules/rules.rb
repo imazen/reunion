@@ -14,7 +14,7 @@ module Reunion
       block.call(self) if block_given?
     end 
 
-    attr_accessor :name, :aliases, :field, :schema_method_definition, :exclude, :kind, :apply_action
+    attr_accessor :name, :example, :aliases, :field, :schema_method_definition, :exclude, :kind, :apply_action
     
     def all_names
       [name, aliases].flatten.compact.uniq
@@ -267,6 +267,9 @@ module Reunion
       end
     end
 
+    def methods_used
+      rules.map{|chain| chain.map{|r| r[:definition]}}.flatten.uniq
+    end
 
     def add_rule_part(method, *args, &block)
       type = rule_methods[method.to_sym]
