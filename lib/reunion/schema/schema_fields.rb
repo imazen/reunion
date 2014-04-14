@@ -160,13 +160,14 @@ module Reunion
       return default_value if value.nil?
       if value.is_a?(String)
         return default_value if value.empty?
-        return BigDecimal.new(value.gsub(/[\$,]/, ""))
+        BigDecimal.new(value.gsub(/[\$,]/, ""))
       elsif value.is_a?(Float)
-        return BigDecimal.new(value, 2 + value.to_i.to_s.length)
-      elsif !value.is_a?(BigDecimal)
-        return BigDecimal.new(value)
+        BigDecimal.new(value, 2 + value.to_i.to_s.length)
+      elsif value.is_a?(BigDecimal)
+        value
+      else
+        BigDecimal.new(value)
       end
-      value
     end
 
     def format(value)
