@@ -19,20 +19,28 @@ module Reunion
 
         matched_count = r.matched_transactions.uniq.count
         by_lines[line_number.to_i] ||= []
-        by_lines[line_number.to_i] << matched_count
+        by_lines[line_number.to_i] << {count: matched_count, rule: r}
       end
       by_lines
     end
 
     def interpolate(text, filename)
       line_matches = by_line_number(filename)
-      STDERR << line_matches.inspect
       new_text = ""
       text.lines.each_with_index do |line, ix|
-        new_text << line.rstrip 
-        counts = line_matches[ix + 1]
-        new_text << "\t\# matched: #{counts.join ', '}" if counts
-        new_text << "\n"
+        rules = line_matches[ix + 1]
+        if rules
+          counts = rules.map{|r|r[:count]}
+          message = "matched: #{counts.join ', '}"
+          if counts.inject(0, :+) == 0
+            #If there were no matches, let's do a diagnostic
+            message = rules.map{|r|
+              r.inspect
+            }.join(",")
+          end
+          message = "\t\# #{message}" 
+        end 
+        new_text << "#{line.rstrip}#{message}\n"
       end
       new_text
     end
