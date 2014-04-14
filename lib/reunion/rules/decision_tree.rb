@@ -169,7 +169,7 @@ module Reunion
           when :gt
             d > @value
           when :between_inclusive
-            !d.nil? && d >= @value[0] && d <= @value[1]
+            d >= @value[0] && d <= @value[1]
           when :include
             d && d.include?(@value)
           when :regex
