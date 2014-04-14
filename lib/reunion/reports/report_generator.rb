@@ -41,7 +41,7 @@ module Reunion
       result.breadcrumbs = []
 
       child_reports = reports
-      child_data = datasource.dup
+      child_data = datasource
       report = nil
 
       slugs.each_with_index do |name, ix|
@@ -50,7 +50,7 @@ module Reunion
         path = slugs[0..ix]
         result.slugs = path
         result.path = path.join('/')
-        raise "Failed to find report (#{path.join('/')}) during generation of (#{slugs.join('/')}) within set [#{child_reports.map{|r|r.slug}.join(',')}]\n" if report.nil?
+        raise "Failed to find report (#{path.join('/')}) during generation of (#{slugs.join('/')}) within set [#{child_reports.map{|r|r.slug}.join(',')}], datasource results #{child_data.results.count}\n" if report.nil?
         child_data = child_data.unfilter unless report.inherit_filters
         child_data = child_data.filter(&(report.filter)) if report.filter
         result.breadcrumbs << {name: name.to_s, path: path.join('/')}
@@ -73,7 +73,7 @@ module Reunion
       result.title = report.title
       result.schema = datasource.schema
       result.subreports = child_reports.map{|r|
-        generate(slugs + [r.slug], reports, child_data,false)
+        generate(slugs + [r.slug], reports, datasource,false)
       }
       result.navs = result.subreports.map{|r| [r.name, r.path]}
       result.summary_table = generate_summary_table(result, is_root)
