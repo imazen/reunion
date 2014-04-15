@@ -193,7 +193,7 @@ module Reunion
         r = org.generate_report(slugs)
 
         if params["format"] == "csv"
-          fields = [:date, :amount,:currency, :description, :vendor, :subledger, :memo,:account_sym, :id]
+          fields = [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
           e = Export.new
           STDERR << "making csv...\n"
           attachment "#{slugs.join('_')}.csv"
