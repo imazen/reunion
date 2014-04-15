@@ -191,7 +191,17 @@ module Reunion
         slugs = slugs.split('/').compact.reject{|s| s.empty?}
         STDERR << "Locating report " + slugs.join('/')  + "\n"
         r = org.generate_report(slugs)
-        slim :report, {:layout => :layout, :locals => {:r => r, :basepath => '/reports/'}}
+
+        if params["format"] == "csv"
+          fields = [:date, :amount,:currency, :description, :vendor, :subledger, :memo,:account_sym, :id]
+          e = Export.new
+          STDERR << "making csv...\n"
+          attachment "#{slugs.join('_')}.csv"
+          content_type "text/csv"
+          e.generate_csv(r.transactions, org.schema, fields)
+        else
+          slim :report, {:layout => :layout, :locals => {:r => r, :basepath => '/reports/'}}
+        end
       end
 
       get '/expense/?:year?/?' do |year| 

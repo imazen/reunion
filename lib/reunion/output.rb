@@ -105,6 +105,14 @@ class Reunion::Export
     tags.uniq
   end
 
+  def generate_csv(txns, schema, field_names) 
+    CSV.generate do |csv|
+      csv << field_names
+      txns.each do |t|
+        csv << field_names.map{|f| schema.format_field(f, t[f])}
+      end
+    end
+  end
 
   def write_file(path, contents)
     FileUtils::mkdir_p File.dirname(path) unless Dir.exist?(File.dirname(path))
@@ -181,5 +189,7 @@ class Reunion::Export
 
     File.open(file, 'w') { |f| f.write(output) }
   end
+
+
 
 end 

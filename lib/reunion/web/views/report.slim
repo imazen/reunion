@@ -26,6 +26,8 @@
         a href="/reports/#{path}"
           = name
 
+a.btn.btn-primary href="/reports/#{r.path}?format=csv" Download CSV
+
 == slim :report_summary,:layout => false,  :locals => {r: r, basepath: basepath}
 
 
