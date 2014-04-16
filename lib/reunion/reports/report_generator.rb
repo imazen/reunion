@@ -66,7 +66,8 @@ module Reunion
         result.transactions = child_data.results
         sort_field = opts[:sort_by]
         result.transactions = result.transactions.sort_by do |t|
-          "#{sort_field ? t[:sort_field] : ''}|#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{t.date_str}|#{'%.2f' % t.amount}|#{t.account_sym}"
+          str = "#{t.date_str}|#{t.description.strip.squeeze(' ').downcase}|#{t.date_str}|#{'%.2f' % t.amount}|#{t.account_sym}"
+          sort_field && t[sort_field] ? [t[sort_field],str] : [:empty, str]
         end
         result.transactions = result.transactions.reverse if opts[:sort_order] == :reverse
       end
