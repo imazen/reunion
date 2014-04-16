@@ -3,7 +3,7 @@ module Reunion
 
   class Report
     def initialize(slug, title: slug, filter: ->(t){true}, subreports: [], 
-      calculations: [], group_only: false, options: {})
+      calculations: [], group_only: false, options: {}, inherit_filters: true)
       @slug = slug
       @title = title || slug.to_s.gsub("_\-", " ").capitalize
       @filter = filter
@@ -11,7 +11,7 @@ module Reunion
       @subreports = subreports.reject{|r| r.is_a?(ReportValue)}
       @report_options = options
       @group_only = group_only
-      @inherit_filters = true
+      @inherit_filters = inherit_filters
     end
 
     attr_accessor :slug, :title, :filter, :subreports, :calculations, :inherit_filters, :group_only, :report_options
