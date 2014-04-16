@@ -17,14 +17,22 @@ module Reunion
         statements.concat combined.select { |r| r[:amount].to_s.strip.empty? && !r[:balance].to_s.strip.empty? }
       end 
 
+      invalid_transactions = []
       #Normalize transactions with the provided schema
-      transactions.each do |t|
+      transactions = transactions.map do |t|
         t[:schema] = schema
-        schema.normalize(t)
-      end 
+        begin
+          schema.normalize(t)
+          t
+        rescue => e
+          STDERR << "\nFailed to parse transaction #{e.message}: #{t.inspect}\n"
+          invalid_transactions << t
+          next nil
+        end 
+      end.compact
 
       #Separate unusable data (failed validation of critical fields)
-      invalid_transactions = transactions.select{|t| schema.is_broken?(t)}
+      invalid_transactions.concat(transactions.select{|t| schema.is_broken?(t)})
       transactions -= invalid_transactions
       results[:invalid_transactions] = invalid_transactions
 
