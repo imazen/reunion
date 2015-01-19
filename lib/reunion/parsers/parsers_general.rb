@@ -7,7 +7,7 @@ module Reunion
       OFX(StringIO.new(text)) do
         statements << {date: account.balance.posted_at, balance: account.balance.amount}
         transactions += account.transactions.map do |t|
-          {amount: t.amount, date: Date.parse(t.posted_at.to_s), description: t.name }
+          {amount: t.amount, date: Date.parse(t.posted_at.to_s), description: t.name, description2: t.memo}
         end 
       end
       {transactions: transactions.stable_sort_by { |t| t[:date].iso8601 }, statements: statements}
