@@ -1,64 +1,64 @@
 GIT
   remote: git://github.com/alexch/rerun.git
-  revision: 7bced8266621404da24227e13e312a7f6f0b6219
+  revision: db85618e5677314e854850918e1d722284328141
   specs:
-    rerun (0.8.2)
-      listen (~> 1.0.3)
+    rerun (0.10.0)
+      listen (~> 2.7, >= 2.7.3)
 
 GEM
   remote: http://rubygems.org/
   specs:
-    byebug (2.6.0)
-      columnize (~> 0.3)
+    byebug (3.5.1)
+      columnize (~> 0.8)
       debugger-linecache (~> 1.2)
+      slop (~> 3.6)
+    celluloid (0.16.0)
+      timers (~> 4.0.0)
     coderay (1.1.0)
-    columnize (0.3.6)
+    columnize (0.9.0)
     daemons (1.1.9)
-    debugger (1.6.6)
-      columnize (>= 0.3.1)
-      debugger-linecache (~> 1.2.0)
-      debugger-ruby_core_source (~> 1.3.2)
     debugger-linecache (1.2.0)
-    debugger-ruby_core_source (1.3.2)
-    eventmachine (1.0.3)
-    ffi (1.9.3)
-    listen (1.0.3)
+    eventmachine (1.0.4)
+    ffi (1.9.6)
+    hitimes (1.2.2)
+    listen (2.8.5)
+      celluloid (>= 0.15.2)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
-      rb-kqueue (>= 0.2)
     method_source (0.8.2)
-    mini_portile (0.5.1)
-    nokogiri (1.6.0)
-      mini_portile (~> 0.5.0)
+    mini_portile (0.6.2)
+    nokogiri (1.6.5)
+      mini_portile (~> 0.6.0)
     ofx (0.3.2)
       nokogiri
-    pry (0.9.12.6)
-      coderay (~> 1.0)
-      method_source (~> 0.8)
+    pry (0.10.1)
+      coderay (~> 1.1.0)
+      method_source (~> 0.8.1)
       slop (~> 3.4)
-    rack (1.5.2)
-    rack-test (0.6.2)
+    rack (1.6.0)
+    rack-test (0.6.3)
       rack (>= 1.0)
-    rake (10.1.1)
+    rake (10.4.2)
     rb-fsevent (0.9.4)
-    rb-inotify (0.9.3)
+    rb-inotify (0.9.5)
       ffi (>= 0.5.0)
-    rb-kqueue (0.2.2)
-      ffi (>= 0.5.0)
-    ruby-prof (0.14.2)
+    rouge (1.7.7)
+    ruby-prof (0.15.3)
     sinatra (1.0)
       rack (>= 1.0)
-    slim (2.0.2)
-      temple (~> 0.6.6)
+    slim (3.0.1)
+      temple (~> 0.7.3)
       tilt (>= 1.3.3, < 2.1)
-    slop (3.4.7)
-    temple (0.6.7)
-    thin (1.6.1)
-      daemons (>= 1.0.9)
-      eventmachine (>= 1.0.0)
-      rack (>= 1.0.0)
-    tilt (2.0.0)
-    triez (1.0.2)
+    slop (3.6.0)
+    temple (0.7.5)
+    thin (1.6.3)
+      daemons (~> 1.0, >= 1.0.9)
+      eventmachine (~> 1.0)
+      rack (~> 1.0)
+    tilt (2.0.1)
+    timers (4.0.1)
+      hitimes
+    triez (1.0.4)
     webrat (0.7.3)
       nokogiri (>= 1.2.0)
       rack (>= 1.0)
@@ -69,13 +69,13 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
-  debugger
   ofx (~> 0.3.2)
   pry
   rack-test
   rake
   rb-fsevent
   rerun!
+  rouge
   ruby-prof
   sinatra
   slim
