@@ -1,0 +1,15 @@
+
+h3
+  | GC stats
+
+- if defined?(stats) && stats
+  table.table.table-condensed.table-striped.table-hover
+    tr
+      th Stat
+      th Value
+    - stats.each_pair do |k,v|
+      tr
+        td
+          = k
+        td
+          = v

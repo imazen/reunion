@@ -89,6 +89,10 @@ module Reunion
         redirect request.referer
       end
 
+      get '/debug' do
+        slim :'debug', {layout: :layout, :locals => {:stats => GC.stat}}
+      end 
+
       get '/import/sources' do
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 
