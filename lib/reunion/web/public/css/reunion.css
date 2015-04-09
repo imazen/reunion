@@ -13,3 +13,13 @@ h3{
 td.field_date{
   white-space: nowrap;
 }
+
+a{
+  content:none;
+}
+
+@media print {
+  a[href]:after {
+    content: "";
+  }
+}
