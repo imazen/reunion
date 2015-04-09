@@ -50,7 +50,19 @@ module Reunion
     end 
   end
 
-
+  class OwnerExpenseTsvParser < TsvParser
+    def parse(text)
+      results = super(text)
+      results[:combined] = results[:combined].map do |t|
+        contrib = {}.merge(t)
+        contrib[:tax_expense] = :owner_contrib
+        contrib[:description] = "Owner contrib: #{contrib[:description]}"
+        contrib[:amount] = parse_amount(contrib[:amount]) * -1
+        [contrib,t]
+      end.flatten
+      results
+    end
+  end
 
 end
 
