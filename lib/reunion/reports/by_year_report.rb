@@ -38,7 +38,7 @@ module Reunion
       years.map do |year|
         s = []
         (1..4).each do |quarter|
-          startmonth = quarter * 3
+          startmonth = 1 + (quarter - 1) * 3
           endmonth = startmonth + 2
           s << Report.new("q#{quarter}".to_sym,
             filter: ->(t){t.date.month.between?(startmonth,endmonth)},
