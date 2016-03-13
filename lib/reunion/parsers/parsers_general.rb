@@ -40,13 +40,20 @@ module Reunion
     def parse(text)
       a = StrictTsv.new(text.encode('UTF-8').rstrip).parse
 
-      {combined: a.map{|r|
-        row = {}.merge(r)
-        #merge JSON row
-        json = JSON.parse(r[:json]) if r[:json] && !r[:json].strip.empty?
-        row = row.merge(json) if json
-        row
-      }} 
+      {
+        combined: a.map{|r|
+          row = {}.merge(r)
+          #merge JSON row
+          if r[:json] && !r[:json].strip.empty?
+            json = JSON.parse(r[:json]) 
+            if json 
+              json = Hash[json.map{|k,val| [k.strip.to_sym,val] } ]
+              row = row.merge(json)
+            end
+          end
+          row
+        }
+      } 
     end 
   end
 
@@ -64,6 +71,15 @@ module Reunion
     end
   end
 
+  class MetadataTsvParser < TsvParser
+    def parse(text)
+      results = super(text)
+      results[:combined].each do |t|
+        t[:discard_if_unmerged] = true
+      end 
+      results
+    end
+  end
 end
 
 

@@ -29,6 +29,7 @@ module Reunion
 
     def format_field(field, value)
       return value.to_s if field.nil?
+      raise "Error formatting #{field.inspect} value #{value}" if fields.key?(field.to_sym) && fields[field].nil?
       fields.key?(field.to_sym) ? fields[field].format(value) : value.to_s
     end
 
