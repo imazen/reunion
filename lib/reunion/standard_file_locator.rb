@@ -13,7 +13,7 @@ module Reunion
     def generate_input_filenames 
       input_dirs.map do |input_dir| 
         Dir.glob(File.join(File.expand_path(input_dir, working_dir), input_pathspec),File::FNM_CASEFOLD)
-      end.flatten.select { |p| File.basename(p).split('-').length > 2 && (p =~ /\.normal\.txt\Z/i).nil? }
+      end.flatten.uniq.select { |p| File.basename(p).split('-').length > 2 && (p =~ /\.normal\.txt\Z/i).nil? }
     end
 
     def generate_file_objects
