@@ -8,6 +8,7 @@ module Reunion
       @input_files = []
       @overlap_deletions = []
       @drop_other_currencies = true
+      @sort = nil
     end
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
