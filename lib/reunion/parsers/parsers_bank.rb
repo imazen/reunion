@@ -18,6 +18,36 @@ module Reunion
     end 
   end
 
+# from activity search export
+ class ChaseActivityCsvParser < ParserBase
+    def parse(text)
+      # Details,Posting Date,"Description",Amount,Type,Balance,Check or Slip #,
+      t = CSV.parse(text, csv_options)
+      t.delete_if { |l| l[:posting_date].nil? && l[:amount].nil?}
+
+
+      txns = t.map{ |l| 
+        desc = l[:description]
+        if l[:check_or_slip]
+          desc = "#{l[:description]} Check #{l[:check_or_slip]}"
+        end 
+
+        row = {date: Date.strptime(l[:posting_date], '%m/%d/%Y'), 
+          description: desc.strip, 
+          txn_type: l[:type],
+          amount: parse_amount(l[:amount]), 
+          balance_after: parse_amount(l[:balance]) }
+        
+        row.delete(:balance_after) if l[:balance].nil? || l[:balance].empty?
+        row
+      }
+      txns.reverse!
+
+      
+      {transactions: txns }
+    end 
+  end
+
 
   class PncStatementActivityCsvParser < ParserBase
     def parse(text)
