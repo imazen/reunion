@@ -4,6 +4,24 @@ class Reunion::Export
     input_file_to_tsv(txns, drop_columns: [:subindex, :schema, :source, :priority])
   end
 
+  def transactions_to_csv_allow_fields(txns, allowed_field_names) 
+    CSV.generate do |csv|
+      csv << allowed_field_names
+      txns.each do |t|
+        csv << allowed_field_names.map{|f| t.schema.format_field(f, t[f])}
+      end
+    end
+  end
+
+  def csv_from_arrays(headers, rows) 
+    CSV.generate do |csv|
+      csv << headers
+      rows.each do |t|
+        csv << t
+      end
+    end
+  end
+
   def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority])
     main_columns = [:date, :amount, :description]
     main_columns.unshift(:id) if txns.count{|t| t[:id]} > txns.count * 2 / 3
@@ -103,15 +121,6 @@ class Reunion::Export
     tags << :transfer if txn[:transfer]
     tags << :unpaired if txn[:transfer] && !txn[:transfer_pair]
     tags.uniq
-  end
-
-  def generate_csv(txns, schema, field_names) 
-    CSV.generate do |csv|
-      csv << field_names
-      txns.each do |t|
-        csv << field_names.map{|f| schema.format_field(f, t[f])}
-      end
-    end
   end
 
   def write_file(path, contents)

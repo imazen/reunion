@@ -194,15 +194,18 @@ module Reunion
       get %r{^\/reports/?(.+)$} do |slugs|
         slugs = slugs.split('/').compact.reject{|s| s.empty?}
         STDERR << "Locating report " + slugs.join('/')  + "\n"
-        r = org.generate_report(slugs)
+
+        simplified = (params["simple"] == "true")
+
+        r = org.generate_report(slugs, simplified_totals: simplified)
 
         if params["format"] == "csv"
-          fields = [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
-          e = Export.new
           STDERR << "making csv...\n"
           attachment "#{slugs.join('_')}.csv"
           content_type "text/csv"
-          e.generate_csv(r.transactions, org.schema, fields)
+          ReportExporter.new.export_csv(report: r, schema: org.schema, 
+            txn_fields: [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
+          )
         else
           slim :report, {:layout => :layout, :locals => {:r => r, :basepath => '/reports/'}}
         end

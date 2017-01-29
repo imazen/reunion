@@ -28,14 +28,26 @@ module Reunion
       result.subreports.each do |sr|
         export(sr, rootdir)
       end
+    end 
 
+
+
+    def export_csv(report:, schema:, txn_fields: )
+      if report.transactions.nil?
+        rows = report.summary_table[:rows].map do |row|
+          newrow = row.dup
+          newrow[0] = newrow[0].map{|v| v[:name]} * "/"
+          newrow
+        end
+        Export.new.csv_from_arrays(report.summary_table[:headers],rows)
+      else 
+        Export.new.transactions_to_csv_allow_fields(r.transactions, txn_fields)
+      end 
     end 
   end
 
   class ReportGenerator
-
-  
-    def generate(slugs, reports, datasource, is_root = true)
+    def generate(slugs: , reports: , datasource: , is_root: true, **options)
       slugs = slugs.map{|s| s.to_s.downcase.to_sym}
       result = ReportResult.new
       result.breadcrumbs = []
@@ -74,14 +86,14 @@ module Reunion
       result.title = report.title
       result.schema = datasource.schema
       result.subreports = child_reports.map{|r|
-        generate(slugs + [r.slug], reports, datasource,false)
+        generate(slugs: slugs + [r.slug], reports: reports, datasource: datasource, is_root: false, **options)
       }
       result.navs = result.subreports.map{|r| [r.name, r.path]}
-      result.summary_table = generate_summary_table(result, is_root)
+      result.summary_table = generate_summary_table(result, is_root, **options)
       result
     end
 
-    def generate_summary_table(result, is_root)
+    def generate_summary_table(result, is_root, simplified_totals:)
       cols = ["Name", "Currency", "Value", "Debits", "Credits", "30d Avg"]
 
       rows = []
@@ -101,9 +113,13 @@ module Reunion
           avg = in_currency.find{|v| v[:slug] == :avg30}
           next unless [net,debit,credit,avg].any?{|v| v && v[:txn_count] > 0}
           values = [net, debit, credit].map{|v|
-            v ? "#{v[:value]} (#{v[:txn_count]})" : nil
+            if simplified_totals
+              v ? "#{v[:value]}" : nil 
+            else
+              v ? "#{v[:value]} (#{v[:txn_count]})" : nil
+            end 
           }
-          values << (avg ? avg[:value] : nil)
+          values << (avg ? avg[:value] : nil) unless simplified_totals
           rows << [result.breadcrumbs, currency] + values
         end
       end

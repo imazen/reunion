@@ -119,10 +119,10 @@ module Reunion
       []
     end
 
-    def generate_report(slugs)
+    def generate_report(slugs, **options)
       gen = ReportGenerator.new
       txns = all_transactions
-      report = gen.generate(slugs,reports, ReportDataSource.new(txns,txns, schema))
+      report = gen.generate(slugs: slugs, reports: reports, datasource: ReportDataSource.new(txns,txns, schema), **options)
       report 
     end
 
