@@ -11,7 +11,7 @@ module Reunion
       @sort = nil
     end
 
-    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before
+    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before, :truncate_after
 
     attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort
 
@@ -23,6 +23,10 @@ module Reunion
 
     def drop_transactions_before(date)
       @truncate_before = date
+    end 
+
+    def drop_transactions_after(date)
+      @truncate_after = date
     end 
 
     #Finds any transactions in 'secondary_files' that have a similar transaction in primary_files (same date and amount)
@@ -78,6 +82,11 @@ module Reunion
           t[:discard] = true; t[:discard_reason] = "Dropping transactions prior to " + truncate_before.strftime("%Y-%m-%d")
         end
       end if truncate_before
+      txns.each do |t|
+        if t.date > truncate_after
+          t[:discard] = true; t[:discard_reason] = "Dropping transactions after " + truncate_after.strftime("%Y-%m-%d")
+        end
+      end if truncate_after
 
       #Exclude discarded transactions
       txns = txns.select{|t| t[:discard].nil?}
