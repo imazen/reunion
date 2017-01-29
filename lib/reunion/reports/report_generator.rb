@@ -93,7 +93,7 @@ module Reunion
       result
     end
 
-    def generate_summary_table(result, is_root, simplified_totals:)
+    def generate_summary_table(result, is_root, simplified_totals: false)
       cols = ["Name", "Currency", "Value", "Debits", "Credits", "30d Avg"]
 
       rows = []

@@ -131,7 +131,7 @@ module Reunion
       datasource = ReportDataSource.new(all_transactions,all_transactions, schema)
       report_list ||= reports
       report_list.each do |r|
-        result = ReportGenerator.new.generate([r.slug], report_list, datasource)
+        result = ReportGenerator.new.generate(slugs: [r.slug], reports: report_list, datasource: datasource)
         exp.export(result, File.join(root_dir, "output/reports"))
       end
     end
