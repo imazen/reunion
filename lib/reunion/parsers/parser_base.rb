@@ -58,7 +58,7 @@ module Reunion
     end
 
     def parse_amount(text)
-      return 0 if text.nil? || text.empty?
+      return 0 if text.nil? || text.empty? || text.strip.empty?
       BigDecimal.new(text.gsub(/[\$,]/, ""))
     end
 
