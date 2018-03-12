@@ -191,7 +191,7 @@ module Reunion
         slim :report_list,  {:layout => :layout, :locals => {:reports => list}}
       end 
 
-      get %r{^\/reports/?(.+)$} do |slugs|
+      get %r{\/reports/?(.+)} do |slugs|
         slugs = slugs.split('/').compact.reject{|s| s.empty?}
         STDERR << "Locating report " + slugs.join('/')  + "\n"
 
