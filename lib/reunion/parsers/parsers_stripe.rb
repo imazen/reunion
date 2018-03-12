@@ -26,6 +26,7 @@ module Reunion
 
     def parse_txn_type(type)
       s = type.strip.downcase.to_sym
+      s = :transfer if s == :payout
       if [:transfer, :charge, :adjustment, :refund].include?(s)
         s
       else
