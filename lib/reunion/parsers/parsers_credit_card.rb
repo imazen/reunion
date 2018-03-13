@@ -1,5 +1,39 @@
 module Reunion
 
+  # Merchant names will be longer, different. You may still need to account for that
+  # when merging with other sources
+  class ChaseCopyPasteStatementParser < ParserBase
+    def parse(text)
+      current_year = nil
+      {transactions: 
+        text.each_line.map do |line|
+          line.strip!
+          if  /^20[0-9][0-9]$/ =~ line
+            current_year = line
+            nil
+          elsif line.empty?
+            nil
+          elsif current_year.nil?
+            raise "File must contain a line with the year before any transactions"
+          else
+            parts = line.split(/\s+/)
+            if parts.length < 3
+              raise "Bad line #{line}"
+            else 
+              date = parts[0]
+              if date.scan(/\//).count < 2
+                date = "#{date}/#{current_year}"
+              end 
+              {date:  Date.strptime(date, '%m/%d/%Y'), 
+                description: parts[1..-2].join(' '),
+                amount: parse_amount(parts[-1]) * -1
+              }
+            end 
+          end   
+        end.compact
+      }
+    end
+  end 
   class ChaseCsvParser < ParserBase
 
     def parse_txn_type(type)
