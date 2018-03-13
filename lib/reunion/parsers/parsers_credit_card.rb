@@ -78,7 +78,7 @@ module Reunion
         a.map { |l| 
           {date:  Date.strptime(l[:date], '%m/%d/%Y %a'), 
             description: l[:description], 
-            amount: parse_amount(l[:amount])
+            amount: parse_amount(l[:amount]) * -1
           }
         }.reverse
       }
