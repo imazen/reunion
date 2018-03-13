@@ -33,6 +33,25 @@ module Reunion
     end
   end
 
+  class AmexCsvParser < ParserBase
+
+    def parse(text)
+
+      a = CSV.parse(text, {headers: [:date, nil, :description, :holder_name, :card_number, nil, nil, :amount]})
+
+      #01/01/2017  Sun,,"MICROSOFT - 800-642-7676, TX","Nathanael Jones","XXXX-XXXXXX-61006",,,64.77,,,,,,,,
+      {transactions: 
+        a.map { |l| 
+          {date:  Date.strptime(l[:date], '%m/%d/%Y %a'), 
+            description: l[:description], 
+            amount: parse_amount(l[:amount])
+          }
+        }.reverse
+      }
+    end
+  end
+
+  
   class ChaseJotCsvParser < ChaseCsvParser
     
     def parse(text)
