@@ -41,7 +41,7 @@ module Reunion
         end
         Export.new.csv_from_arrays(report.summary_table[:headers],rows)
       else 
-        Export.new.transactions_to_csv_allow_fields(r.transactions, txn_fields)
+        Export.new.transactions_to_csv_allow_fields(report.transactions, txn_fields)
       end 
     end 
   end
