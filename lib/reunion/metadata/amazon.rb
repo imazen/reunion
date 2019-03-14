@@ -9,6 +9,14 @@ module Reunion
         BigDecimal.new(text.gsub(/[\$,]/, ""))
       end
 
+      def parse_date(text)
+        text ? Date.strptime(text, '%m/%d/%y') : nil
+      end 
+
+      def get_nearest_date(row)
+        parse_date(row[:shipment_date]) || parse_date(row[:order_date])
+      end 
+
       def csv_options
         {headers: :first_row, 
          header_converters:
@@ -24,7 +32,9 @@ module Reunion
             subtotal: parse_amount(row[:subtotal]),
           card: (row[:payment_instrument_type] || "").strip,
           order_id: row[:order_id].strip,
-          date: Date.strptime(row[:shipment_date], '%m/%d/%y')}
+          order_date: parse_date(row[:order_date]),
+          ship_date: parse_date(row[:shipment_date]),
+          date: get_nearest_date(row)}
         end
       end
     end
@@ -37,7 +47,9 @@ module Reunion
           description: row[:title].strip,
           order_id: row[:order_id].strip,
           seller: (row[:seller] || "Amazon.com").strip,
-          date: row[:shipment_date] ?  Date.strptime(row[:shipment_date], '%m/%d/%y') : nil}
+          order_date: parse_date(row[:order_date]),
+          ship_date: parse_date(row[:shipment_date]),
+          date: get_nearest_date(row)}
         end.select{|row| row[:date]}
       end
     end
@@ -77,7 +89,7 @@ module Reunion
         end.join(" || ")
       end 
 
-      def aggregate(items, shipments, schema, duplicate_forward_days = 0)
+      def aggregate(items, shipments, schema)
         #Find correlated items by date and order_id. When there are multiple shipments for 
         #an order on the same day, we have to use math to figure out which 
         #items add up. We can combinatorially combine them to solve the problem
@@ -85,11 +97,19 @@ module Reunion
           candidates = items.select{|item| item[:date] == box[:date] && item[:order_id] == box[:order_id]}
           in_the_box = find_subset(candidates, box[:subtotal])
 
-          (0..duplicate_forward_days).map do |days|
-            Transaction.new(schema: schema, date: box[:date] + days,
+          dates = [box[:order_date], 
+                    box[:order_date] + 1, 
+                    box[:date], 
+                    box[:date] > box[:order_date] ? box[:date] - 1: nil, 
+                    box[:date] + 1].uniq.compact
+
+
+
+          dates.map do |date|
+            Transaction.new(schema: schema, date: date,
              amount: -1 * box[:amount],
              card: box[:card],
-             description: candidates.any?{|item| item[:seller] != "Amazon.com"} ? "AMAZON MKTPLACE PMTS" : "Amazon.com",
+             description: candidates.any?{|item| item[:seller] != "Amazon.com"} ? "AMAZON MKTPLACE PMTS - AMZN.COM/BILL, WA" : "AMAZON.COM - AMZN.COM/BILL, WA",
              description2: "#{in_the_box.nil? ? '??' : '' }Order #{box[:order_id]}: " + describe(in_the_box || candidates)
             )
           end

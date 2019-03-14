@@ -1,8 +1,19 @@
 require 'pp'
 class Reunion::BankAccount
+
+  def normalize_description_for_matching(description)
+    d = description.strip.squeeze(" ").downcase
+    if d.start_with?("amazon.com")
+      "amazon.com"
+    elsif d.start_with?("amzn mktp") or d.start_with?("amazon mktp")
+      "amazon marketplace"
+    else
+      d
+    end
+  end 
   def merge_duplicate_transactions(all_transactions)
 
-    match = lambda { |t|  t.date_str + "|" + ("%.2f" %  t.amount) + "|" + t.description.strip.squeeze(" ").downcase  }
+    match = lambda { |t|  t.date_str + "|" + ("%.2f" %  t.amount) + "|" + normalize_description_for_matching(t.description)  }
 
     #We have to give each transaction a unique index so we can do set math without accidentially removing similar txns
     #And so we can resort correctly at the end
