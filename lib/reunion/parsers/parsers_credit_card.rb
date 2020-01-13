@@ -5,7 +5,7 @@ module Reunion
   class ChaseCopyPasteStatementParser < ParserBase
     def parse(text)
       current_year = nil
-      {transactions: 
+      {transactions:
         text.each_line.map do |line|
           line.strip!
           if  /^20[0-9][0-9]$/ =~ line
@@ -19,21 +19,21 @@ module Reunion
             parts = line.split(/\s+/)
             if parts.length < 3
               raise "Bad line #{line}"
-            else 
+            else
               date = parts[0]
               if date.scan(/\//).count < 2
                 date = "#{date}/#{current_year}"
-              end 
-              {date:  Date.strptime(date, '%m/%d/%Y'), 
+              end
+              {date:  Date.strptime(date, '%m/%d/%Y'),
                 description: parts[1..-2].join(' '),
                 amount: parse_amount(parts[-1]) * -1
               }
-            end 
-          end   
+            end
+          end
         end.compact
       }
     end
-  end 
+  end
   class ChaseCsvParser < ParserBase
 
     def parse_txn_type(type)
@@ -47,7 +47,7 @@ module Reunion
         :transfer
       else
         nil
-      end 
+      end
     end
 
     def parse(text)
@@ -55,11 +55,11 @@ module Reunion
       a = CSV.parse(text, csv_options)
       # Type,Trans Date,Post Date,Description,Amount
       # SALE,09/16/2013,09/18/2013,"ADOBE SYSTEMS, INC.",-32.09
-      {transactions: 
-        a.map { |l| 
-          {date:  Date.strptime(l[:post_date], '%m/%d/%Y'), 
-            description: l[:description], 
-            amount: parse_amount(l[:amount]), 
+      {transactions:
+        a.map { |l|
+          {date:  Date.strptime(l[:post_date], '%m/%d/%Y'),
+            description: l[:description],
+            amount: parse_amount(l[:amount]),
             txn_type: parse_txn_type(l[:type]),
             chase_type: l[:type] ? l[:type].strip.downcase : nil }
         }.reverse
@@ -74,10 +74,10 @@ module Reunion
       a = CSV.parse(text, {headers: [:date, nil, :description, :holder_name, :card_number, nil, nil, :amount]})
 
       #01/01/2017  Sun,,"MICROSOFT - 800-642-7676, TX","Nathanael Jones","XXXX-XXXXXX-61006",,,64.77,,,,,,,,
-      {transactions: 
-        a.map { |l| 
-          {date:  Date.strptime(l[:date], '%m/%d/%Y %a'), 
-            description: l[:description], 
+      {transactions:
+        a.map { |l|
+          {date:  Date.strptime(l[:date], '%m/%d/%Y %a'),
+            description: l[:description],
             amount: parse_amount(l[:amount]) * -1
           }
         }.reverse
@@ -85,9 +85,29 @@ module Reunion
     end
   end
 
-  
+  class NewAmexCsvParser < ParserBase
+
+    def parse(text)
+
+      a = CSV.parse(text, csv_options)
+
+      # Date,Reference,Description,Card Member,Card Number,Amount,Category,Type
+      # 12/30/19,'320193640530997967',AUTOPAY PAYMENT - THANK YOU,LILITH RIVER,-61006,-657.37,,CREDIT
+
+      {transactions:
+        a.map { |l|
+            {date:  Date.strptime(l[:date], '%m/%d/%y'),
+            description: l[:description],
+            amount: parse_amount(l[:amount]) * -1
+          }
+        }.reverse
+      }
+    end
+  end
+
+
   class ChaseJotCsvParser < ChaseCsvParser
-    
+
     def parse(text)
 
       #Jot has irregular line endings
@@ -98,24 +118,24 @@ module Reunion
 
       # Jot exports have duplicate transactions
       # 1 line per tag applied - we have to merge them
-      # TODO - merge instead of discarding 
-      {transactions: a.map { |l| 
+      # TODO - merge instead of discarding
+      {transactions: a.map { |l|
         {
-          date: Date.strptime(l[:post_date], '%Y%m%d'), 
-          description: l[:merchant_name], 
-          amount: -parse_amount(l[:amount]), 
+          date: Date.strptime(l[:post_date], '%Y%m%d'),
+          description: l[:merchant_name],
+          amount: -parse_amount(l[:amount]),
           chase_type: l[:type],
           txn_type: parse_txn_type(l[:type]),
           id: l[:transaction_id],
           chase_tag: l[:tag],
           discard_if_unmerged: true
            }
-          
+
         }.reverse.uniq {|l| l[:id]}
       }
 
       #Jot exports also have incorrect amounts , so merging can be hard.
       #Jot doesn't remove authorizations that are later modified or not posted
-    end 
+    end
   end
-end 
+end
