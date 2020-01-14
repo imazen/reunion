@@ -36,9 +36,9 @@ module Reunion
           description: desc.strip, 
           txn_type: l[:type],
           amount: parse_amount(l[:amount]), 
-          balance_after: parse_amount(l[:balance]) }
+          balance_after: parse_amount(l[:balance], default: nil) }
         
-        row.delete(:balance_after) if l[:balance].nil? || l[:balance].empty?
+        row.delete(:balance_after) if row[:balance_after].nil? 
         row
       }
       txns.reverse!

@@ -57,10 +57,19 @@ module Reunion
       results
     end
 
-    def parse_amount(text)
-      return 0 if text.nil? || text.empty? || text.strip.empty?
-      BigDecimal.new(text.gsub(/[\$,]/, ""))
+    def parse_amount(text, default: :error)
+      if is_nil_or_whitespace(text) then 
+        raise "Amount to parse is nil or empty" if default == :error 
+        return default 
+      end 
+      text = text.gsub(/[\$,]/, "") if text.include?("$")
+      BigDecimal.new(text)
     end
+
+    def is_nil_or_whitespace(text)
+      text.nil? || text.strip.empty?
+    end   
+    
 
     def csv_options
       {headers: :first_row, 
