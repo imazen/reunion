@@ -12,6 +12,9 @@ ul
   li Last transaction: #{bank.last_transaction_date}
   li Ending balance: #{"%.2f" % bank.ending_balance}
   li Last statement/reconciliation date: #{bank.last_balance_date ? bank.last_balance_date.strftime("%Y-%m-%d") : "None"}
+  li 
+    a onclick="javascript: $('.reconciliationreport tr.default').toggle();"
+      | Hide/show regular transactions
 
 ruby:
   @report = bank.reconciliation_report.map do |row|
@@ -25,7 +28,7 @@ ruby:
     r
   end.compact
 
-table.table.table-condensed
+table.table.table-condensed.reconciliationreport
   tr
     th Date
     th Amount
