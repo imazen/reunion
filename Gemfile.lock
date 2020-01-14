@@ -19,7 +19,7 @@ GEM
     daemons (1.1.9)
     debugger-linecache (1.2.0)
     eventmachine (1.0.4)
-    ffi (1.9.6)
+    ffi (1.11.3)
     hitimes (1.2.2)
     listen (2.8.5)
       celluloid (>= 0.15.2)
