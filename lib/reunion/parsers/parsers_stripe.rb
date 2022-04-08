@@ -50,7 +50,7 @@ module Reunion
     end
 
     def parse_row(l)
-      date = parse_date(l[:created_utc])
+      date = parse_date(l[:created_utc] || l[:created])
       desc =  l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
@@ -61,7 +61,8 @@ module Reunion
 
       #If transactions haven't had a chance to land in the bank yet, don't mess with them.
 
-      if l[:transfer_date_utc].nil? || l[:transfer_date_utc].empty?
+      if (l[:transfer_date_utc].nil? || l[:transfer_date_utc].empty?) &&
+        (l[:transfer_date].nil? || l[:transfer_date].empty?)
         return [] #Skip rows that haven't landed in the bank yet. 
       end 
 

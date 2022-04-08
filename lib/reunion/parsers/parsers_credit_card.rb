@@ -105,6 +105,27 @@ module Reunion
     end
   end
 
+  class Amex20CsvParser < ParserBase
+    #For 2020, when amex started using 4 year dates again
+    def parse(text)
+
+      a = CSV.parse(text, csv_options)
+
+      # Date,Receipt,Description,Card Member,Account #,Amount,Extended Details,Appears On Your Statement As,Address,City/State,Zip Code,Country,Reference,Category
+      #12/31/2020,,APPVEYOR            VICTORIA            CA,LILITH RIVER,-61006,74.50,"NT_IG3TDCBR 17789898955
+      #APPVEYOR
+      #VICTORIA
+      #CA
+      {transactions:
+        a.map { |l|
+            {date:  Date.strptime(l[:date], '%m/%d/%Y'),
+            description: l[:description],
+            amount: parse_amount(l[:amount]) * -1
+          }
+        }.reverse
+      }
+    end
+  end
 
   class ChaseJotCsvParser < ChaseCsvParser
 
