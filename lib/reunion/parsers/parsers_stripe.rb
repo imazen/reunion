@@ -27,7 +27,8 @@ module Reunion
     def parse_txn_type(type)
       s = type.strip.downcase.to_sym
       s = :transfer if s == :payout
-      if [:transfer, :charge, :adjustment, :refund].include?(s)
+      s = :fee if s == :stripe_fee
+      if [:transfer, :charge, :adjustment, :refund, :fee].include?(s)
         s
       else
         raise "Unsupported Stripe transaction type #{type}. Please implement"
@@ -67,6 +68,7 @@ module Reunion
       end 
 
       #if it lacks a transfer_date, then it probably hasn't landed in the bank yet
+      #Also, payouts can have fees.
       # adjustment fee = chargeback fee
       results = []
 
@@ -85,6 +87,7 @@ module Reunion
       #txn_18X4XT2kdGSXuqwcBrHTyg2s,charge,ch_18X4XS2kdGSXuqwcFAw6Jwos,849.00,24.92,824.08,usd,2016-07-14 07:45,2016-07-16 00:00,Spree Order ID: R102903265-QUTV7T4D,849.00,usd,tr_18XNw42kdGSXuqwcPblCB9xV,2016-07-18 00:00
       #txn_18X1Qq2kdGSXuqwc07tcbbN7,transfer,tr_18X1Qq2kdGSXuqwc3t8R373F,864.00,0.00,864.00,usd,2016-07-14 04:26,2016-07-15 00:00,STRIPE TRANSFER,,,tr_18X1Qq2kdGSXuqwc3t8R373F,2016-07-15 00:00
       #txn_18Wt2c2kdGSXuqwcAk3BN2bS,adjustment,ch_18RUCq2kdGSXuqwcxuiNjYA4,-849.00,15.00,-864.00,usd,2016-07-13 19:29,2016-07-13 19:29,Chargeback withdrawal for ch_18RUCq2kdGSXuqwcxuiNjYA4,,,tr_18X1Qq2kdGSXuqwc3t8R373F,2016-07-15 00:00
+      #txn_1Jtgz02kdGSXuqwcKLYFb21q,payout,po_1Jtgz02kdGSXuqwc69O4GIEp,-5000.00,50.00,,,-5050.00,usd,2021-11-08 23:10,2021-11-08 23:10,"",,,po_1JvX9I2kdGSXuqwc0RPYSJb8,2021-11-15 00:00,,,,
       results << {
           date: date,
           description: desc,
