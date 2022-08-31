@@ -14,7 +14,7 @@ module Reunion
       combined = results[:combined]
       if combined
         transactions.concat combined.select { |r| !r[:amount].to_s.strip.empty? }
-        statements.concat combined.select { |r| r[:amount].to_s.strip.empty? && !r[:balance].to_s.strip.empty? }
+        statements.concat combined.select { |r| (r[:amount] == 0 || r[:amount].to_s.strip.empty?) && !r[:balance].to_s.strip.empty? }
       end 
 
       invalid_transactions = []
