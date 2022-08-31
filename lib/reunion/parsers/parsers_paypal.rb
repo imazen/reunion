@@ -202,7 +202,8 @@ module Reunion
 
       transactions = separate_fees(transactions)
 
-      return {transactions:transactions}
+      # balance_after is not being used for reconciliation, we'd have to name it 'balance' and use 'combined' instead of 'transactions'
+      return {transactions:transactions} 
     end 
   end
 end 
