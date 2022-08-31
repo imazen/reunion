@@ -43,7 +43,7 @@ module Reunion
 
     def parse(text)
       a = CSV.parse(text, csv_options)
-      {transactions: 
+      {combined: 
         a.map { |l| 
           parse_row(l)
         }.flatten.reverse
@@ -51,7 +51,8 @@ module Reunion
     end
 
     def parse_row(l)
-      date = parse_date(l[:created_utc] || l[:created])
+      available_date = parse_date(l[:available_on_utc] || l[:available_on])
+      created_date = parse_date(l[:created_utc] || l[:created])
       desc =  l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
@@ -60,26 +61,14 @@ module Reunion
       raise "Stipe parse error: amount (#{amount}) - fee (#{fee} must equal net (#{net})" if (amount - fee) != net
       raise "Only USD support implemented for Stripe balance" if l[:currency] != "usd"
 
-      #If transactions haven't had a chance to land in the bank yet, don't mess with them.
-
+      #If transactions haven't had a chance to land in the bank yet, don't mess with them, it will cause discrepancies
+      #if it lacks a transfer_date, then it probably hasn't landed in the bank yet
       if (l[:transfer_date_utc].nil? || l[:transfer_date_utc].empty?) &&
         (l[:transfer_date].nil? || l[:transfer_date].empty?)
         return [] #Skip rows that haven't landed in the bank yet. 
       end 
 
-      #if it lacks a transfer_date, then it probably hasn't landed in the bank yet
-      #Also, payouts can have fees.
-      # adjustment fee = chargeback fee
-      results = []
 
-      if fee != 0 then
-        results << {
-          date: date,
-          description: desc,
-          amount: 0 - fee,
-          txn_type: :fee
-        }
-      end 
       #id,Type,Source,Amount,Fee,Net,Currency,Created (UTC),Available On (UTC),Description,Customer Facing Amount,Customer Facing Currency,Transfer,Transfer Date (UTC)
       #txn_19gkmR2kdGSXuqwcnYpNleXL,transfer,tr_19gkmR2kdGSXuqwcX85dZLPZ,-824.08,0.00,-824.08,usd,2017-01-28 01:13,2017-01-29 00:00,STRIPE TRANSFER,,,,
       #txn_18bB5g2kdGSXuqwcVm1fYE09,refund,ch_18BnYG2kdGSXuqwcGJj4i9MG,-249.00,-7.52,-241.48,usd,2016-07-25 15:34,2016-07-25 15:34,REFUND FOR CHARGE (Spree Order ID: R023318196-BGR5XETC),-249.00,usd,tr_18bNa22kdGSXuqwcZWRXdGRb,2016-07-27 00:00
@@ -88,8 +77,29 @@ module Reunion
       #txn_18X1Qq2kdGSXuqwc07tcbbN7,transfer,tr_18X1Qq2kdGSXuqwc3t8R373F,864.00,0.00,864.00,usd,2016-07-14 04:26,2016-07-15 00:00,STRIPE TRANSFER,,,tr_18X1Qq2kdGSXuqwc3t8R373F,2016-07-15 00:00
       #txn_18Wt2c2kdGSXuqwcAk3BN2bS,adjustment,ch_18RUCq2kdGSXuqwcxuiNjYA4,-849.00,15.00,-864.00,usd,2016-07-13 19:29,2016-07-13 19:29,Chargeback withdrawal for ch_18RUCq2kdGSXuqwcxuiNjYA4,,,tr_18X1Qq2kdGSXuqwc3t8R373F,2016-07-15 00:00
       #txn_1Jtgz02kdGSXuqwcKLYFb21q,payout,po_1Jtgz02kdGSXuqwc69O4GIEp,-5000.00,50.00,,,-5050.00,usd,2021-11-08 23:10,2021-11-08 23:10,"",,,po_1JvX9I2kdGSXuqwc0RPYSJb8,2021-11-15 00:00,,,,
+      
+      #The CSV is newest to oldest, so we reverse this order later
+      
+      results = []
+      if txn_type == :transfer && amount < 0 then
+        # Payout should bring balance to zero 
+        results << {
+          date: available_date,
+          balance: 0
+        }
+      end 
+      if fee != 0 then
+        # Payouts and charges and refunds can have fees
+        # adjustment fee = chargeback fee
+        results << {
+          date: available_date,
+          description: desc,
+          amount: 0 - fee,
+          txn_type: :fee
+        }
+      end 
       results << {
-          date: date,
+          date: available_date,
           description: desc,
           amount: amount,
           txn_type: txn_type
@@ -97,4 +107,5 @@ module Reunion
       results
     end 
   end
+
 end
