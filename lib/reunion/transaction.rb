@@ -10,7 +10,7 @@ module Reunion
     end 
 
     attr_accessor :data
-    def_delegators :@data, :size, :[]=, :map, :each, :hash, :eql?, :delete, :key?, :has_key?
+    def_delegators :@data, :size, :[], :[]=, :map, :each, :hash, :eql?, :delete, :key?, :has_key?
 
     def self.delegated_reader( *arr )
        arr.each do |a|
@@ -22,9 +22,9 @@ module Reunion
        end
     end
 
-    def [](key)
-      @data[key]
-    end
+    # def [](key)
+    #   @data[key]
+    # end
 
     delegated_reader :date, :source 
 
