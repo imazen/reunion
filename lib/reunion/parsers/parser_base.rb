@@ -62,7 +62,7 @@ module Reunion
         raise "Amount to parse is nil or empty" if default == :error 
         return default 
       end 
-      text = text.gsub(/[\$,]/, "") if text.include?("$")
+      text = text.gsub(/[\$,]/, "") if text.include?("$") || text.include?(",")
       BigDecimal(text)
     end
 
