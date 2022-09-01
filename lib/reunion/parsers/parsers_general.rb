@@ -58,17 +58,21 @@ module Reunion
   end
 
   class ManualAccountActivityTsvParser < TsvParser
+    
     def parse(text)
-      STDERR << "Parsing #{text}"
       results = super(text)
       results[:combined] = results[:combined].map do |t|
-        STDERR << t.inspect 
         row = {}.merge(t)
         row[:balance] =  parse_amount(row[:balance]) if !row[:balance].nil? && !row[:balance].strip.empty?
         row[:date] = Date.parse(row[:date])
-        row[:amount] = parse_amount(row[:amount]) if !row[:amount].nil? && !row[:amount].strip.empty?
+        if !row[:amount].nil? then
+          if row[:amount].strip.empty?
+            row[:amount] = nil 
+          else
+            row[:amount] = parse_amount(row[:amount])
+          end
+        end 
         raise "Make sure your tabs haven't been converted to spaces, missing both Amount and Balance columns #{row.inspect}" if !row.has_key?(:amount) && !row.has_key?(:balance)
-        STDERR << row.inspect 
         row
       end
       results
