@@ -15,3 +15,6 @@ gem "webrat", :group => :development
 gem "pry", :group => :development
 gem "rake", :group => :development
 gem "ruby-prof"
+gem 'rack-mini-profiler'
+gem 'stackprof'
+gem 'memory_profiler'

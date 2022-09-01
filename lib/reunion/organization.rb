@@ -23,6 +23,12 @@ module Reunion
     def locate_input
     end 
 
+    def enable_profiling!
+      @profile = true
+      require 'ruby-prof'
+      #require 'ruby-prof-flamegraph'
+    end 
+
     def drop_transactions_before(date)
       @truncate_before = date
     end 
@@ -36,6 +42,7 @@ module Reunion
 
     end 
     def parse!
+      RubyProf.start if @profile
       time = Benchmark.measure{
         bank_accounts.each do |a|
           if !truncate_before.nil? then 
@@ -54,6 +61,7 @@ module Reunion
       result =  "Executed parse and sort of transactions in #{time}"
       log << result
       STDERR << result
+      profiling_result("parse", RubyProf.stop) if @profile
     end 
     attr_reader :all_transactions 
 
@@ -104,9 +112,10 @@ module Reunion
     end
 
 
+  
     def compute!
       
-      # RubyProf.start
+      RubyProf.start if @profile
       time = Benchmark.measure{
         @overrides = OverrideSet.load(overrides_path, schema)
         @overrides.apply_all(all_transactions)
@@ -124,12 +133,16 @@ module Reunion
       result =  "Executed rules, transfer detection, and overrides in #{time}"
       log << result
       STDERR << result
-      # result = RubyProf.stop
-      # printer = RubyProf::FlatPrinter.new(result)
-      # printer.print(STDERR)
-      # require pry
-      # binding.pry
+      profiling_result("compute", RubyProf.stop) if @profile
     end
+
+    def profiling_result(name, result)
+      STDERR << "Processing profiling result..."
+      printer = RubyProf::GraphPrinter.new(result)
+      printer.print(STDERR, :min_percent=>1)
+      printer = RubyProf::MultiPrinter.new(result)
+      printer.print(:path => ".", :profile => name, :printers => [:graph, :flat, :graph_html, :stack, :tree, :call_info, :dot])
+    end 
 
     def reports
       []
