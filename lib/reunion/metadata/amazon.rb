@@ -6,7 +6,7 @@ module Reunion
     class AmazonParserBase
       def parse_amount(text)
         return 0 if text.nil? || text.empty?
-        BigDecimal.new(text.gsub(/[\$,]/, ""))
+        BigDecimal(text.gsub(/[\$,]/, ""))
       end
 
       def parse_date(text)
@@ -27,7 +27,7 @@ module Reunion
 
     class AmazonShipmentsParser < AmazonParserBase
       def parse(text)
-        CSV.parse(text.rstrip, csv_options).map do |row|
+        CSV.parse(text.rstrip,**csv_options).map do |row|
           {amount: parse_amount(row[:total_charged]),
             subtotal: parse_amount(row[:subtotal]),
           card: (row[:payment_instrument_type] || "").strip,
@@ -42,7 +42,7 @@ module Reunion
 
     class AmazonItemsParser < AmazonParserBase
       def parse(text)
-        CSV.parse(text.rstrip, csv_options).map do |row|
+        CSV.parse(text.rstrip,**csv_options).map do |row|
           {amount: parse_amount(row[:item_subtotal]),
           description: row[:title].strip,
           order_id: row[:order_id].strip,
@@ -78,7 +78,7 @@ module Reunion
         end 
         return nil #No perfect total
       end 
-      def format_usd (value)
+      def format_usd(value)
         value.nil? ? "" : ("$%.2f" % value)
 
       end

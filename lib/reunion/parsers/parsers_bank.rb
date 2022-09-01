@@ -2,7 +2,7 @@ module Reunion
   class PncActivityCsvParser < ParserBase
     def parse(text)
       # Date,Description,Withdrawals,Deposits,Balance
-      t = CSV.parse(text, csv_options)
+      t = CSV.parse(text,**csv_options)
       t.delete_if { |l| l[:date].nil? && l[:amount].nil?}
 
       txns = t.map{ |l| 
@@ -19,10 +19,10 @@ module Reunion
   end
 
 # from activity search export
- class ChaseActivityCsvParser < ParserBase
+  class ChaseActivityCsvParser < ParserBase
     def parse(text)
       # Details,Posting Date,"Description",Amount,Type,Balance,Check or Slip #,
-      t = CSV.parse(text, csv_options)
+      t = CSV.parse(text,**csv_options)
       t.delete_if { |l| l[:posting_date].nil? && l[:amount].nil?}
 
 
@@ -38,7 +38,7 @@ module Reunion
           amount: parse_amount(l[:amount]), 
           balance_after: parse_amount(l[:balance], default: nil) }
         
-        row.delete(:balance_after) if row[:balance_after].nil? 
+        if row[:balance_after].nil? then row.delete(:balance_after) end
         row
       }
       txns.reverse!

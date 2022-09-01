@@ -115,7 +115,7 @@ module Reunion
 
       v = Vendors.new(StandardRuleSyntax.new(TransactionSchema.new))
       v.add_default_vendors
-      re = RuleEngine.new(v)
+      _ = RuleEngine.new(v)
     end 
   end 
   describe 'rule evaluation engine' do
@@ -135,7 +135,7 @@ module Reunion
 
       txns = []
       txns << Transaction.new(schema: schema, :date => Date.parse('2014-01-01'), 
-                                :amount => BigDecimal.new("20.00"),
+                                :amount => BigDecimal("20.00"),
                                 :description => "Something",
                                 :tags => [:a])
       re = RuleEngine.new(r)

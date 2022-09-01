@@ -64,10 +64,10 @@ module Reunion
           tag :expense do 
             match "^CHECK " do
               after '2011-05-05' do
-                amount -275.00 do
+                amount(-275.00) do
                   tag :rent
                 end
-                amount -125.00 do
+                amount(-125.00) do
                   tag :utilities
                 end 
               end 
@@ -79,13 +79,13 @@ module Reunion
 
         expected = [[Cond.new(key: :'description.downcase', comparator: :prefix, value: "check"),
                       Cond.new(key: :'date.mjd', comparator: :gt, value: 55686), 
-                      Cond.new(key: :amount, comparator: :eq, value: BigDecimal.new(-275))]]
+                      Cond.new(key: :amount, comparator: :eq, value: BigDecimal(-275))]]
 
         assert_str_eqal expected, ConditionFlattener.new.condition_tree_to_array_of_arrays(conditions.first)
 
         expected = [[Cond.new(key: :'description.downcase', comparator: :prefix, value: "check"),
                       Cond.new(key: :'date.mjd', comparator: :gt, value: 55686), 
-                      Cond.new(key: :amount, comparator: :eq, value: BigDecimal.new(-125))]]
+                      Cond.new(key: :amount, comparator: :eq, value: BigDecimal(-125))]]
         assert_str_eqal expected, ConditionFlattener.new.condition_tree_to_array_of_arrays(conditions.last)
 
       end 

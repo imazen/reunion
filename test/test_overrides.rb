@@ -7,8 +7,8 @@ module Reunion
     before do
 
       @txns = []
-      @txns << Transaction.new({:date => Date.parse('2014-01-01'),
-                                :amount => BigDecimal.new("20.00"),
+      @txns << Transaction.new(from_hash: {:date => Date.parse('2014-01-01'),
+                                :amount => BigDecimal("20.00"),
                                 :description => "Something",
                                 :tags => [:a],
                                 :account_sym => :bank})

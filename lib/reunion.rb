@@ -14,7 +14,7 @@ require 'triez'
 require 'ruby-prof'
 
 class Array
-  def stable_sort_by (&block)
+  def stable_sort_by(&block)
       n = 0
       sort_by {|x| n+= 1; [block.call(x), n]}
   end

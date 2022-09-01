@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
-ruby "2.1.5"
+ruby "3.1.2"
 
-gem "ofx", "~> 0.3.2"
+gem "ofx", :git => "https://github.com/annacruz/ofx", :ref => "d12805f"
 gem "byebug", :group => :development
 gem "sinatra"
 gem "tilt"
@@ -11,8 +11,6 @@ gem 'triez'
 gem 'rack-test' #Warning, needed for production
 gem 'rouge'
 
-gem "rerun", :git => "git://github.com/alexch/rerun.git", :group => :development
-gem "rb-fsevent", :group => :development
 gem "webrat", :group => :development
 gem "pry", :group => :development
 gem "rake", :group => :development

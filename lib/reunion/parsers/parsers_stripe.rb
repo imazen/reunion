@@ -22,7 +22,7 @@ Transfer date
 
 
 module Reunion
- class StripeBalanceCsvParser < ParserBase
+  class StripeBalanceCsvParser < ParserBase
 
     def parse_txn_type(type)
       s = type.strip.downcase.to_sym
@@ -42,7 +42,7 @@ module Reunion
     end 
 
     def parse(text)
-      a = CSV.parse(text, csv_options)
+      a = CSV.parse(text, **csv_options)
       {combined: 
         a.map { |l| 
           parse_row(l)
@@ -52,7 +52,7 @@ module Reunion
 
     def parse_row(l)
       available_date = parse_date(l[:available_on_utc] || l[:available_on])
-      created_date = parse_date(l[:created_utc] || l[:created])
+      #created_date = parse_date(l[:created_utc] || l[:created])
       desc =  l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
@@ -107,5 +107,4 @@ module Reunion
       results
     end 
   end
-
 end

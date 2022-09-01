@@ -141,10 +141,10 @@ module Reunion
       intervals = dates.each_with_index.map { |d,ix| ix > 0 ? (d.mjd - dates[ix - 1].mjd) : nil}.compact
       raise "Intervals empty " if intervals.empty?
       interval_avg = intervals.inject(:+).to_f / intervals.size
-      interval_deltas = intervals.map{|i| (interval_avg - i).abs}
-      interval_deltas_avg = interval_deltas.inject(:+).to_f / interval_deltas.size
+      #interval_deltas = intervals.map{|i| (interval_avg - i).abs}
+      #interval_deltas_avg = interval_deltas.inject(:+).to_f / interval_deltas.size
       #interval_deltas.avg
-      first_date = dates.first
+      #first_date = dates.first
 
       return if interval_avg < 20 || interval_avg > 40 ||
       has_last_date = (last_import_date.mjd - (interval_avg * 2)) > dates.last.mjd

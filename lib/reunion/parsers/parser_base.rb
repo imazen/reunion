@@ -63,7 +63,7 @@ module Reunion
         return default 
       end 
       text = text.gsub(/[\$,]/, "") if text.include?("$")
-      BigDecimal.new(text)
+      BigDecimal(text)
     end
 
     def is_nil_or_whitespace(text)

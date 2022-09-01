@@ -39,7 +39,7 @@ module Reunion
       normalized = @schema.normalize(@txns.first)
 
       assert_equal Date.parse('2013-01-01'), normalized.date
-      assert_equal -134.22, normalized.amount
+      assert_equal(-134.22, normalized.amount)
       assert_equal "some stuff", normalized.description
     end 
   end

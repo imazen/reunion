@@ -212,6 +212,7 @@ module Reunion
             end
           end
           by_most_used = stats.values.sort_by(&:counter).reverse
+          by_most_used
         end
       
         def get_condition_reuse_hash(c)

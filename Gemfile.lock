@@ -1,64 +1,53 @@
 GIT
-  remote: git://github.com/alexch/rerun.git
-  revision: db85618e5677314e854850918e1d722284328141
+  remote: https://github.com/annacruz/ofx
+  revision: d12805f04f217618d442f32e1add04c08aaa54b7
+  ref: d12805f
   specs:
-    rerun (0.10.0)
-      listen (~> 2.7, >= 2.7.3)
+    ofx (0.3.3)
+      nokogiri (~> 1.13.1)
 
 GEM
   remote: http://rubygems.org/
   specs:
-    byebug (3.5.1)
-      columnize (~> 0.8)
-      debugger-linecache (~> 1.2)
-      slop (~> 3.6)
-    celluloid (0.16.0)
-      timers (~> 4.0.0)
-    coderay (1.1.0)
-    columnize (0.9.0)
-    daemons (1.1.9)
-    debugger-linecache (1.2.0)
-    eventmachine (1.0.4)
-    ffi (1.11.3)
-    hitimes (1.2.2)
-    listen (2.8.5)
-      celluloid (>= 0.15.2)
-      rb-fsevent (>= 0.9.3)
-      rb-inotify (>= 0.9)
-    method_source (0.8.2)
-    mini_portile2 (2.4.0)
-    nokogiri (1.9.1)
-      mini_portile2 (~> 2.4.0)
-    ofx (0.3.2)
-      nokogiri
-    pry (0.10.1)
-      coderay (~> 1.1.0)
-      method_source (~> 0.8.1)
-      slop (~> 3.4)
-    rack (1.6.12)
-    rack-test (0.6.3)
-      rack (>= 1.0)
-    rake (12.3.3)
-    rb-fsevent (0.9.4)
-    rb-inotify (0.9.5)
-      ffi (>= 0.5.0)
-    rouge (1.7.7)
-    ruby-prof (0.15.3)
-    sinatra (1.0)
-      rack (>= 1.0)
-    slim (3.0.1)
-      temple (~> 0.7.3)
-      tilt (>= 1.3.3, < 2.1)
-    slop (3.6.0)
-    temple (0.7.5)
-    thin (1.6.3)
+    byebug (11.1.3)
+    coderay (1.1.3)
+    daemons (1.4.1)
+    eventmachine (1.2.7)
+    method_source (1.0.0)
+    mini_portile2 (2.8.0)
+    mustermann (2.0.2)
+      ruby2_keywords (~> 0.0.1)
+    nokogiri (1.13.8)
+      mini_portile2 (~> 2.8.0)
+      racc (~> 1.4)
+    pry (0.14.1)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+    racc (1.6.0)
+    rack (2.2.4)
+    rack-protection (2.2.2)
+      rack
+    rack-test (2.0.2)
+      rack (>= 1.3)
+    rake (13.0.6)
+    rouge (3.30.0)
+    ruby-prof (1.4.3)
+    ruby2_keywords (0.0.5)
+    sinatra (2.2.2)
+      mustermann (~> 2.0)
+      rack (~> 2.2)
+      rack-protection (= 2.2.2)
+      tilt (~> 2.0)
+    slim (4.1.0)
+      temple (>= 0.7.6, < 0.9)
+      tilt (>= 2.0.6, < 2.1)
+    temple (0.8.2)
+    thin (1.8.1)
       daemons (~> 1.0, >= 1.0.9)
-      eventmachine (~> 1.0)
-      rack (~> 1.0)
-    tilt (2.0.1)
-    timers (4.0.1)
-      hitimes
-    triez (1.0.4)
+      eventmachine (~> 1.0, >= 1.0.4)
+      rack (>= 1, < 3)
+    tilt (2.0.11)
+    triez (1.0.6)
     webrat (0.7.3)
       nokogiri (>= 1.2.0)
       rack (>= 1.0)
@@ -69,12 +58,10 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
-  ofx (~> 0.3.2)
+  ofx!
   pry
   rack-test
   rake
-  rb-fsevent
-  rerun!
   rouge
   ruby-prof
   sinatra
@@ -83,3 +70,9 @@ DEPENDENCIES
   tilt
   triez
   webrat
+
+RUBY VERSION
+   ruby 3.1.2p20
+
+BUNDLED WITH
+   2.3.21

@@ -63,10 +63,10 @@ module Reunion
          expected_tags: [:utilities]}
         ]) do 
 
-        amount -275.00 do
+        amount(-275.00) do
           tag :rent
         end
-        amount -125.00 do
+        amount(-125.00) do
           tag :utilities
         end 
       end 
@@ -87,10 +87,10 @@ module Reunion
         ]) do 
 
         match "^CHECK " do  
-          amount -275.00 do
+          amount(-275.00)do
             tag :rent
           end
-          amount -125.00 do
+          amount(-125.00)do
             tag :utilities
           end 
         end 
@@ -115,10 +115,10 @@ module Reunion
         tag :expense do 
           match "^CHECK " do
             after '2011-05-05' do
-              amount -275.00 do
+              amount(-275.00) do
                 tag :rent
               end
-              amount -125.00 do
+              amount(-125.00) do
                 tag :utilities
               end 
             end 

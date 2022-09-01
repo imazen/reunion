@@ -150,6 +150,7 @@ module Reunion
       not_sym = list.map{|e| e.all_names}.flatten.select{|v| !v.is_a?(Symbol)}
       raise ("method aliases not a symbol: " + not_sym * " ") if not_sym.count > 0
       lookup = Hash[list.map{|e| e.all_names.map{|name| [name.to_sym,e]}}.flatten(1)]
+      lookup
     end 
 
   end 
@@ -295,7 +296,7 @@ module Reunion
       #if block is specified, it's just part of a chain, not an endpoint
       if block
         #begin
-        r = child_scope.add(&block)
+        _ = child_scope.add(&block)
         #rescue NoMethodError => e 
         #  e.set_backtrace(part[:stacktrace]) unless @exception_rethrown
         #  @exception_rethrown = true

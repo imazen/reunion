@@ -2,11 +2,14 @@ module Reunion
 
   class Organization
 
-    attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results
-
+    attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
+    
+    
     def log
       @log ||= []
     end
+
+   
 
     def bank_accounts_output_dir
       File.join(root_dir, "output/accounts")
@@ -20,6 +23,10 @@ module Reunion
     def locate_input
     end 
 
+    def drop_transactions_before(date)
+      @truncate_before = date
+    end 
+
     def warn_about_unused_input
       no_account_files = all_input_files.select{|f| f.account.nil? }
       log << "Failed to match the following files to accounts:\n" + no_account_files.map{|f| f.path} * "\n" if no_account_files.length > 0
@@ -29,16 +36,24 @@ module Reunion
 
     end 
     def parse!
-      bank_accounts.each do |a|
-        a.load_and_merge(schema)
-        a.reconcile
+      time = Benchmark.measure{
+        bank_accounts.each do |a|
+          if !truncate_before.nil? then 
+            a.drop_transactions_before(truncate_before) if a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)
+          end 
+          a.load_and_merge(schema)
+          a.reconcile
 
-        Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
-        basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
-        File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
-        File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
-      end
-      @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
+          Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
+          basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
+          File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
+          File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
+        end
+        @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
+      }
+      result =  "Executed parse and sort of transactions in #{time}"
+      log << result
+      STDERR << result
     end 
     attr_reader :all_transactions 
 
@@ -91,7 +106,7 @@ module Reunion
 
     def compute!
       
-      #RubyProf.start
+      # RubyProf.start
       time = Benchmark.measure{
         @overrides = OverrideSet.load(overrides_path, schema)
         @overrides.apply_all(all_transactions)
@@ -108,11 +123,12 @@ module Reunion
       }
       result =  "Executed rules, transfer detection, and overrides in #{time}"
       log << result
-      #result = RubyProf.stop
-      #printer = RubyProf::FlatPrinter.new(result)
-      #printer.print(STDERR)
-      #require pry
-      #binding.pry
+      STDERR << result
+      # result = RubyProf.stop
+      # printer = RubyProf::FlatPrinter.new(result)
+      # printer.print(STDERR)
+      # require pry
+      # binding.pry
     end
 
     def reports

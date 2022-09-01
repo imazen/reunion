@@ -52,7 +52,7 @@ module Reunion
 
     def parse(text)
 
-      a = CSV.parse(text, csv_options)
+      a = CSV.parse(text,**csv_options)
       # Type,Trans Date,Post Date,Description,Amount
       # SALE,09/16/2013,09/18/2013,"ADOBE SYSTEMS, INC.",-32.09
       {transactions:
@@ -71,7 +71,7 @@ module Reunion
 
     def parse(text)
 
-      a = CSV.parse(text, {headers: [:date, nil, :description, :holder_name, :card_number, nil, nil, :amount]})
+      a = CSV.parse(text, **{headers: [:date, nil, :description, :holder_name, :card_number, nil, nil, :amount]})
 
       #01/01/2017  Sun,,"MICROSOFT - 800-642-7676, TX","Nathanael Jones","XXXX-XXXXXX-61006",,,64.77,,,,,,,,
       {transactions:
@@ -89,7 +89,7 @@ module Reunion
 
     def parse(text)
 
-      a = CSV.parse(text, csv_options)
+      a = CSV.parse(text,**csv_options)
 
       # Date,Reference,Description,Card Member,Card Number,Amount,Category,Type
       # 12/30/19,'320193640530997967',AUTOPAY PAYMENT - THANK YOU,LILITH RIVER,-61006,-657.37,,CREDIT
@@ -109,7 +109,7 @@ module Reunion
     #For 2020, when amex started using 4 year dates again
     def parse(text)
 
-      a = CSV.parse(text, csv_options)
+      a = CSV.parse(text,**csv_options)
 
       # Date,Receipt,Description,Card Member,Account #,Amount,Extended Details,Appears On Your Statement As,Address,City/State,Zip Code,Country,Reference,Category
       #12/31/2020,,APPVEYOR            VICTORIA            CA,LILITH RIVER,-61006,74.50,"NT_IG3TDCBR 17789898955

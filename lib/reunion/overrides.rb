@@ -29,7 +29,7 @@ module Reunion
       fmt = Hash[changes.to_a.map do |pair| 
         pair[1].nil? ? pair : [pair[0],schema.format_field(pair[0], pair[1])]
       end]
-      JSON.generate(changes)
+      JSON.generate(fmt)
     end 
 
     def load_changes_from_json(str)
@@ -103,7 +103,7 @@ module Reunion
         ov.schema = schema
         ov.account_str = r[:account].strip.downcase
         ov.date_str = Date.parse(r[:date]).strftime("%Y-%m-%d")
-        ov.amount_str = "%.2f" % BigDecimal.new(r[:amount].gsub(/[\$,]/, ""))
+        ov.amount_str = "%.2f" % BigDecimal(r[:amount].gsub(/[\$,]/, ""))
         ov.description = r[:description].gsub(/\s+/," ").strip
         ov.subindex = Integer(r[:subindex].strip)
         ov.load_changes_from_json(r[:changes])

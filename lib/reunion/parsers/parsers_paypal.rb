@@ -86,7 +86,7 @@ module Reunion
       refd.each do |primary|
         secondaries = with_refs.select{|t| t[:ref_id] == primary[:id]}
 
-        non_primary_currency = secondaries.select{|t| t[:currency] != primary[:currency]}
+        #non_primary_currency = secondaries.select{|t| t[:currency] != primary[:currency]}
         if secondaries.all?{|t| t[:paypal_type] == "Currency Conversion"} && 
             secondaries.length == 2 &&
             primary[:paypal_type] != "Withdraw Funds to a Bank Account"
@@ -170,7 +170,7 @@ module Reunion
 
       #Did you know that they also edit history? The description can change!
 
-      a = CSV.parse(text, csv_options.merge({col_sep:"\t"}))
+      a = CSV.parse(text,**csv_options.merge({col_sep:"\t"}))
 
       transactions = a.map do |r|
 

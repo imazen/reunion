@@ -24,7 +24,7 @@ module Reunion
 
   class CsvParser < ParserBase
     def parse(text)
-      a = CSV.parse(text.rstrip, csv_options).select{|r|true}
+      a = CSV.parse(text.rstrip,**csv_options).select{|r|true}
 
       {combined: a.map {|r|
         row = {}.merge(r.to_hash)
@@ -55,6 +55,24 @@ module Reunion
         }
       } 
     end 
+  end
+
+  class ManualAccountActivityTsvParser < TsvParser
+    def parse(text)
+      STDERR << "Parsing #{text}"
+      results = super(text)
+      results[:combined] = results[:combined].map do |t|
+        STDERR << t.inspect 
+        row = {}.merge(t)
+        row[:balance] =  parse_amount(row[:balance]) if !row[:balance].nil? && !row[:balance].strip.empty?
+        row[:date] = Date.parse(row[:date])
+        row[:amount] = parse_amount(row[:amount]) if !row[:amount].nil? && !row[:amount].strip.empty?
+        raise "Make sure your tabs haven't been converted to spaces, missing both Amount and Balance columns #{row.inspect}" if !row.has_key?(:amount) && !row.has_key?(:balance)
+        STDERR << row.inspect 
+        row
+      end
+      results
+    end
   end
 
   class OwnerExpenseTsvParser < TsvParser

@@ -1,5 +1,7 @@
-
 class Reunion::BankAccount
+  attr_accessor :reconciliation_report 
+  attr_accessor :starting_balance, :starting_balance_date, :last_transaction_date, :last_balance_date, :ending_balance
+
 
   def sort_to_reduce_discrepancies(startbal, combined)
 
@@ -147,7 +149,7 @@ class Reunion::BankAccount
       report << nil if row[:bal]
 
       last_balance_row = row if row[:bal] || !row[:balance_after].nil?
-      last_statement = row if row[:bal]
+      last_statement = row if row[:bal] # not used
       last_txn_date = row[:date] if row_amount != 0
 
     end
@@ -158,10 +160,9 @@ class Reunion::BankAccount
     @reconciliation_report = report
     @last_balance_date = last_balance_row[:date] unless last_balance_row.nil?
     @ending_balance = balance
+    @last_statement = last_statement
     @last_transaction_date = last_txn_date
     report
   end 
-  attr_accessor :reconciliation_report 
-  attr_accessor :starting_balance, :starting_balance_date, :last_transaction_date, :last_balance_date, :ending_balance
-  attr_accessor :final_discrepancy
+
 end

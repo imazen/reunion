@@ -4,6 +4,7 @@ module Reunion
     extend Forwardable
 
     def initialize(schema: nil, from_hash: {}, **args)
+
       @data = from_hash.clone.merge(args)
       @data[:schema] = schema unless schema.nil?
     end 
@@ -41,7 +42,7 @@ module Reunion
 
   class Transaction < TxnBase
 
-    delegated_reader :id, :amount, :description, :tags, :balance_after, :vendor, :client, :account_sym
+    delegated_reader :id, :amount, :description, :balance_after, :vendor, :client, :account_sym
 
     delegated_reader :transfer, :transfer_pair, :discard_if_unmerged, :priority, :schema
 

@@ -10,10 +10,6 @@ module Reunion
       value
     end
 
-    def validate
-      nil
-    end 
-
     attr_accessor :allowed_values, :value_required, :readonly, :critical, :default_value, :display_tags
 
     def validate(value)
@@ -34,7 +30,7 @@ module Reunion
       newvalue.nil? ? oldvalue : newvalue
     end
 
-   def query_methods
+    def query_methods
       [SchemaMethodDefinition.new(
         schema_field: self,
         build: ->(field, args){
@@ -100,16 +96,20 @@ module Reunion
       nil
     end 
 
-    def merge (oldvalue, newvalue)
+    def merge(oldvalue, newvalue)
       [oldvalue,newvalue].flatten.compact.uniq
     end
 
-   def query_methods
-      [SchemaMethodDefinition.new(
-        schema_field: self,
-        build: ->(field, args){
-          Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field, :lambda, arg) : Re::Cond.new(field, :include, SymbolField.to_symbol(arg)) })
-        })]
+    def query_methods
+        [SchemaMethodDefinition.new(
+          schema_field: self,
+          build: ->(field, args){
+            Re::Or.new(args.flatten.map{|arg| arg.respond_to?(:call) ? Re::Cond.new(field, :lambda, arg) : Re::Cond.new(field, :include, SymbolField.to_symbol(arg)) })
+          })]
+    end 
+
+    def format(val)
+      val
     end 
 
   end 
@@ -143,7 +143,7 @@ module Reunion
       nil
     end
 
-   def query_methods
+    def query_methods
       [SchemaMethodDefinition.new(
         schema_field: self,
         build: ->(field, args){
@@ -151,7 +151,6 @@ module Reunion
           Re::Cond.new(field, :eq, expected)
         })]
     end 
-
   end 
 
 
@@ -160,13 +159,13 @@ module Reunion
       return default_value if value.nil?
       if value.is_a?(String)
         return default_value if value.empty?
-        BigDecimal.new(value.gsub(/[\$,]/, ""))
+        BigDecimal(value.gsub(/[\$,]/, ""))
       elsif value.is_a?(Float)
-        BigDecimal.new(value, 2 + value.to_i.to_s.length)
+        BigDecimal(value, 2 + value.to_i.to_s.length)
       elsif value.is_a?(BigDecimal)
         value
       else
-        BigDecimal.new(value)
+        BigDecimal(value)
       end
     end
 
