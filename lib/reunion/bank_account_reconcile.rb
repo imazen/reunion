@@ -122,7 +122,7 @@ class Reunion::BankAccount
           start_bal = balance + discrepancy_amount
           start_bal_date = row[:date]
         else
-          description = "Discrepancy between #{last_balance_row[:date].strftime("%Y-%m-%d")} and #{result_row[:date].strftime("%Y-%m-%d")} of " + "%.2f" % discrepancy_amount 
+          description = "Discrepancy between #{last_balance_row[:date].strftime("%Y-%m-%d")} and #{result_row[:date].strftime("%Y-%m-%d")} of #{"%.2f" % discrepancy_amount}"  
      
           last_balance_source = get_balance_source.call(last_balance_row)
           balance_source = get_balance_source.call(row)

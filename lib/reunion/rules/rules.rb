@@ -86,7 +86,7 @@ module Reunion
           exclude = query.clone.with_exclude(true)
           
           query.with_aliases(nouns.map{|noun| "for_#{noun}".to_sym})
-          query.with_aliases(nouns.map{|noun| noun.to_sym})
+          query.with_aliases(nouns.map(&:to_sym))
           query.with_aliases(nouns.map{|noun| "when_#{noun}".to_sym})
 
           exclude.with_aliases(nouns.map{|noun| "exclude_#{noun}".to_sym})
@@ -149,7 +149,7 @@ module Reunion
     def compute_lookup_table
       not_sym = list.map{|e| e.all_names}.flatten.select{|v| !v.is_a?(Symbol)}
       raise ("method aliases not a symbol: " + not_sym * " ") if not_sym.count > 0
-      lookup = Hash[list.map{|e| e.all_names.map{|name| [name.to_sym,e]}}.flatten(1)]
+      lookup = Hash[list.flat_map{|e| e.all_names.map{|name| [name.to_sym,e]}}]
       lookup
     end 
 

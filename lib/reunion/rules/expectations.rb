@@ -90,7 +90,7 @@ module Reunion
         next if g.length < 2 || g.map{|t| t[:amount]}.compact.inject(0, :+) > 0.1
         d = g.last.description
         v = d.downcase.gsub(/\d\d\d+/,"").gsub("'","").gsub(/ inc| llc|\.com/,"")
-        v = v.gsub(/[^a-z0-0 ]/," ").squeeze(" ").strip.gsub(/\A[0-9]+/,"").gsub(" ", "_")
+        v = v.gsub(/[^a-z0-0 ]/," ").squeeze(" ").strip.gsub(/\A[0-9]+/,"").tr(" ", "_")
         puts "#{v}: \"#{g.last.description}\",     #(#{g.length}x)\n"
       end
       puts "}"

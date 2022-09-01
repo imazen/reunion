@@ -126,13 +126,21 @@ module Reunion
       overrides[ov.lookup_digest] = ov
     end 
 
+    def self.key_from_string(str)
+      str = str.downcase
+      str.squeeze!(' ')
+      str.strip!
+      str
+    end 
+
+
     def self.set_subindexes(absolutely_all_transactions)
       txns = absolutely_all_transactions
-      #Group into identical transactions
-      match = lambda { |t|  t.account_sym.to_s + "|" + t.date_str + "|" + ("%.2f" %  t.amount) + "|" + t.description.strip.squeeze(" ").downcase  }
-      groups = txns.stable_sort_by{ |t| match.call(t)}.chunk(&match).map{|t| t[1]}
-      groups.each do |g| 
-        g.each_with_index do |txn, ix| 
+      # Group into identical transactions
+      match = lambda {|t| "#{t.account_sym}|#{t.date_str}|#{'%.2f' %  t.amount}|#{key_from_string(t.description)}" }
+      groups = txns.stable_sort_by { |t| match.call(t) }.chunk(&match).map {|t| t[1]}
+      groups.each do |g|
+        g.each_with_index do |txn, ix|
           txn[:subindex] = ix
         end
       end

@@ -98,7 +98,7 @@ module Reunion
       end 
       
       get '/import/sources/:digest' do |digest|
-        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.select{|f| f.path_account_digest == digest}.first}}
+        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.detect{|f| f.path_account_digest == digest}}}
       end 
 
       get '/import/validate' do
@@ -145,7 +145,7 @@ module Reunion
         field = org.schema.fields[key]
         value = field.normalize(params[:value])
 
-        txn = org.all_transactions.select{|t| t.lookup_key == id}.first
+        txn = org.all_transactions.detect{|t| t.lookup_key == id}
 
         existing_override = org.overrides.by_txn(txn) 
 

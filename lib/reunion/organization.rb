@@ -4,7 +4,8 @@ module Reunion
 
     attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
     
-    
+    @profile = false
+
     def log
       @log ||= []
     end
@@ -42,7 +43,7 @@ module Reunion
 
     end 
     def parse!
-      RubyProf.start if @profile
+      #RubyProf.start if @profile
       time = Benchmark.measure{
         bank_accounts.each do |a|
           if !truncate_before.nil? then 
@@ -61,7 +62,7 @@ module Reunion
       result =  "Executed parse and sort of transactions in #{time}"
       log << result
       STDERR << result
-      profiling_result("parse", RubyProf.stop) if @profile
+      #profiling_result("parse", RubyProf.stop) if @profile
     end 
     attr_reader :all_transactions 
 
@@ -115,7 +116,7 @@ module Reunion
   
     def compute!
       
-      RubyProf.start if @profile
+      #RubyProf.start if @profile
       time = Benchmark.measure{
         @overrides = OverrideSet.load(overrides_path, schema)
         @overrides.apply_all(all_transactions)
@@ -133,7 +134,7 @@ module Reunion
       result =  "Executed rules, transfer detection, and overrides in #{time}"
       log << result
       STDERR << result
-      profiling_result("compute", RubyProf.stop) if @profile
+      #profiling_result("compute", RubyProf.stop) if @profile
     end
 
     def profiling_result(name, result)

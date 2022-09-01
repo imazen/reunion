@@ -7,7 +7,7 @@ module Reunion
     attr_accessor :metaonly
 
     def path_account_digest
-      Digest::SHA1.hexdigest(path.to_s + "|" + (account.nil? ? "nil" : account.permanent_id.to_s))
+      Digest::SHA1.hexdigest("#{path.to_s}|#{(account.nil? ? "nil" : account.permanent_id.to_s)}")
     end
 
     def load(schema)

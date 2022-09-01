@@ -44,7 +44,7 @@ module Reunion
   class SymbolField < SchemaField
 
     def validate(value)
-      unless value.nil? || value.is_a?(Symbol)
+      unless value.nil? || value.instance_of?(Symbol)
         return "Value #{value.inspect} (#{value.class.name}) is not a Symbol"
       end
       if value_required && value.nil?
@@ -55,10 +55,20 @@ module Reunion
 
     def self.to_symbol(value, default_value = nil)
       return default_value if value.nil?
-      str = value.to_s.strip.squeeze(" ").downcase.gsub(" ","_")
-      return default_value if str.empty?
-      str.to_sym
+      #raise "Bad assumption" if value.is_a?(Symbol) && value.to_s.include(" ")
+      
+      #return value if value.is_a?(Symbol)
+      value = value.to_s if !value.is_a?(String)
+      return default_value if value.empty? 
+      if /[A-Z\x00\t\n\v\f\r ]/.match(value) then
+        str = value.strip.squeeze(" ").downcase.tr(" ","_")
+        return default_value if str.empty? 
+        return str.to_sym
+      else
+        return value.to_sym
+      end 
     end
+
     def normalize(value)
       SymbolField.to_symbol(value,default_value)
     end
@@ -67,8 +77,9 @@ module Reunion
 
   class UppercaseSymbolField < SymbolField
     def normalize(value)
+      return :USD if value == "usd" || value == "USD" #Fast path, currency
       return default_value if value.nil?
-      str = value.to_s.strip.squeeze(" ").upcase.gsub(" ","_")
+      str = value.to_s.strip.squeeze(" ").upcase.tr(" ","_")
       return default_value if str.empty?
       str.to_sym
     end

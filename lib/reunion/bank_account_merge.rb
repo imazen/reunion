@@ -13,12 +13,17 @@ class Reunion::BankAccount
   end 
   def merge_duplicate_transactions(all_transactions)
 
-    match = lambda { |t|  t.date_str + "|" + ("%.2f" %  t.amount) + "|" + normalize_description_for_matching(t.description)  }
+    match = lambda { |t|  "#{t.date_str}|#{("%.2f" %  t.amount)}|#{normalize_description_for_matching(t.description)}"  }
 
     #We have to give each transaction a unique index so we can do set math without accidentially removing similar txns
     #And so we can resort correctly at the end
-    all_transactions.each_with_index { |v, i| v[:temp_index] = i}
-    
+    all_txn_length = all_transactions.length
+    ix = 0
+    while ix < all_txn_length
+      all_transactions[ix][:temp_index] = ix
+      ix +=1 
+    end
+
     all_transactions = all_transactions.stable_sort_by { |t| match.call(t)}
 
     #Group into matching transactions

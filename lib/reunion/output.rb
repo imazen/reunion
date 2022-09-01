@@ -60,7 +60,7 @@ class Reunion::Export
     widths = types.map{ |t| t[:name].length }
     table = records.compact.map do |r|
       row = []
-      types.each_with_index do |t,i|
+      types.each_with_index do |t,i| #TODO: make while loop for speed
         if t[:fn] 
           value = (t[:fn]).call(r)
         else 
@@ -81,13 +81,13 @@ class Reunion::Export
       row
     end
 
-    #Now we hav a table of strings and widths
+    #Now we have a table of strings and widths
     output = ""
     output << types.each_with_index.map { |t,i| t == types.last ? t[:name] : t[:name].ljust(widths[i]) } * "\t"
     output << "\n"
     table.each do |row|
-      row.each_with_index do |v,i|
-        output << ((i == widths.length - 1) ? v.to_s : (v.ljust(widths[i]) + "\t"))
+      row.each_with_index do |v,i| #TODO: make while loop for speed
+        output << ((i == widths.length - 1) ? v.to_s : ("#{v.ljust(widths[i])}\t"))
       end
       output << "\n"
     end
@@ -109,7 +109,7 @@ class Reunion::Export
     output = ""
     table.each do |row|
       row.each_with_index do |v,i|
-        output << ((i == widths.length - 1) ? v.to_s : (v.ljust(widths[i]) + "\t"))
+        output << ((i == widths.length - 1) ? v.to_s : ("#{v.ljust(widths[i])}\t"))
       end
       output << "\n"
     end

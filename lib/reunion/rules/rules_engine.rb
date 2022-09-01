@@ -45,8 +45,7 @@ module Reunion
     def prep_transactions(transactions)
       return [] if transactions.empty?
       schema = transactions.first.schema
-      prep_fields_methods = schema.fields.to_a.map{|field,v| v.query_methods.map{|smd| smd.prep_data}.compact.map{|m| [field,m]}}.flatten(1)
-
+      prep_fields_methods = schema.fields.to_a.flat_map{|field,v| v.query_methods.map{|smd| smd.prep_data}.compact.take(1).map{|m| [field,m]}}
       transactions.map{|t|
         prepped = t.data.clone
         prep_fields_methods.each{ |field, method| method.call(field, prepped[field], prepped)}
