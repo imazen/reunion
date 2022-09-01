@@ -158,7 +158,7 @@ module Reunion
 
         def get_results(data, &block)
           node = self
-          d = ((@comparator == :lambda || @comparator == :yes) && @key.nil?) ? data : data[@key]
+          d = ((@comparator == :lambda || @comparator == :yes) && @key.nil?) ? data : data[@key] #hash access is a bottleneck
           match = case @comparator
           when :yes
             true
