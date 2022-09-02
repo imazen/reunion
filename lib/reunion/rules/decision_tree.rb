@@ -86,34 +86,36 @@ module Reunion
           elsif conditions.length > 1
             raise "Unsupported shared comparator #{conditions}"
           end
-        end 
+        end
 
         def add_simple_subnode(condition, pairs)
           n = DecisionNode.new(self)
           n.value = condition.value
           n.key = condition.key
           n.comparator = condition.comparator
-          pairs.each do |c,chain|
+          pairs.each do |c, chain|
             chain.conditions.delete(c)
             chain.node = n
             n.results << chain.result if chain.conditions.empty?
           end
-          self.children << n 
-          n.chains_touching = pairs.map{|c,chain| chain}
+          children << n
+          n.chains_touching = pairs.map { |c, chain| chain}
           n.add_subnodes
         end
+
         def add_hash_subnodes(pairs)
           h = {}
-          pairs.each do |c,chain|
+          pairs.each do |c, chain|
             h[c] ||= []
             h[c] << chain
           end
 
           p = DecisionNode.new(self)
-          self.children << p
-          h.each do |co,chains|
-            remaining_chains = chains.select{|chain| chain.node == self || (chain.node == nil && parent == nil)}
+          children << p
+          h.each do |co, chains|
+            remaining_chains = chains.select { |chain| chain.node == self || (chain.node.nil? && parent.nil?)}
             next if remaining_chains.count < 1
+
             h[co] = n = DecisionNode.new(p)
             n.comparator = :yes
             n.chains_touching = remaining_chains
@@ -135,31 +137,38 @@ module Reunion
           elsif first_co.comparator == :prefix
             p.comparator = :in_trie
             t = Triez.new value_type: :object
-            h.each do |k,v|
+            h.each do |k, v|
               t[k.value] = v
             end
             p.value = t
           else
             raise "Huh?"
-          end 
+          end
         end
 
 
-        #eq, gt, lt,  between_inclusive, in_hash include, regex, prefix, in_trie,  lambda, yes
+        # eq, gt, lt,  between_inclusive, in_hash include, regex, prefix, in_trie,  lambda, yes
         attr_accessor :key, :comparator, :value, :not, :results, :children, :parent, :chains_touching
 
 
         def inspect(indent=0)
-          bang = !!@not ? "!" : ""
+          bang = !!@not ? '!' : ''
 
-          return (" " * indent) + ">#{key} #{bang}#{comparator} #{value} -> #{results.count} results\n" + 
-              children.map{|c| c.inspect(indent + 2)} * "\n"
+          (" " * indent) + ">#{key} #{bang}#{comparator} #{value} -> #{results.count} results\n" +
+              children.map { |c| c.inspect(indent + 2)} + "\n"
         end
 
-        def get_results(data, &block)
-          node = self
-          d = ((@comparator == :lambda || @comparator == :yes) && @key.nil?) ? data : data[@key] #hash access is a bottleneck
-          match = case @comparator
+
+        def match?(data)
+          return true if @comparator == :yes
+
+          d = @comparator == :lambda && @key.nil? ? data : data[@key]
+
+          return d == @value if @comparator == :eq
+
+          return false if d.nil? # No other comparators work with a nil data
+
+          case @comparator
           when :yes
             true
           when :eq
@@ -171,29 +180,37 @@ module Reunion
           when :between_inclusive
             d >= @value[0] && d <= @value[1]
           when :include
-            d && d.include?(@value)
+            d.include?(@value)
           when :regex
             @value === d
           when :prefix
-            d && d.start_with?(@value) 
+            d.start_with?(@value)
           when :lambda
             @value.call(d)
           when :in_hash
-            node = @value[d]
-            node.get_results(data,&block) unless node.nil?
-            false
+            raise 'in_hash not supported match?'
           when :in_trie
-            pairs = @value.walk(d) 
-            pairs.each do |k, node|
-              node.get_results(data,&block)
-            end
-            false
+            raise 'in_trie not supported by match?'
           end
-          if match
-            results.each(&block)
-            @children.each{|c|c.get_results(data,&block)}
+        end
+
+        def get_results(data, &block)
+          if @comparator == :in_hash
+            @value[data[@key]]&.get_results(data, &block)
+            return false
+          end
+          if @comparator == :in_trie
+            pairs = @value.walk(data[@key])
+            pairs.each do |_, match_node|
+              match_node.get_results(data, &block)
+            end
+            return false
           end
 
+          return unless match?(data)
+
+          results.each(&block)
+          @children.each { |c| c.get_results(data, &block) }
         end
 
         Stat = Struct.new(:counter, :pairs)
@@ -203,6 +220,7 @@ module Reunion
           chains.each do |chain|
             next if chain.node != in_node
             raise "TypeError #{chain.conditions.inspect}" unless Array ===chain.conditions 
+
             chain.conditions.each do |c|
               key = get_condition_reuse_hash(c)
               info = stats[key] || Stat.new(0, [])
