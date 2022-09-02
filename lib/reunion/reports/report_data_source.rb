@@ -1,9 +1,11 @@
 module Reunion
-
   class ReportDataSource
     attr_accessor :all_transactions, :results, :schema, :applied
 
     def initialize(all_transactions, results, schema)
+      raise "Data source cannot have nil results array" if results.nil?
+      raise "Data source cannot have nil all_transactions value provided" if all_transactions.nil?
+
       @all_transactions = all_transactions
       @results = results
       @schema = schema
@@ -12,17 +14,19 @@ module Reunion
 
     def get_cached_result(filters)
       return unfilter if filters.empty?
+
       key = [all_transactions.object_id, filters]
       @@cache ||= {}
       result = @@cache[key]
+      # #{$stderr.puts("From cache of #{@@cache.length} items, key=#{key.inspect}, got #{result}")}
       unless result
         result = get_cached_result(filters[0..-2])
-        result = ReportDataSource.new(all_transactions,result.results.select(&(filters.last)), schema)
+        result = ReportDataSource.new(all_transactions, result.results.select(&(filters.last)), schema)
         result.applied = filters
         @@cache[key] = result
       end
       result
-    end 
+    end
 
     def filter(&filter)
       get_cached_result(applied + [filter])
@@ -36,12 +40,12 @@ module Reunion
 
     def all_currencies
       @@cache ||= {}
-      key = [all_transactions.object_id,:currencies]
-      @@cache[key] ||= all_transactions.uniq{|t| t[:currency]}.map{|t| t[:currency]}.sort.reverse
+      key = [all_transactions.object_id, :currencies]
+      @@cache[key] ||= all_transactions.uniq { |t| t[:currency] }.map { |t| t[:currency] }.sort.reverse
     end
 
     def unfilter
-      ReportDataSource.new(all_transactions,all_transactions, schema)
+      ReportDataSource.new(all_transactions, all_transactions, schema)
     end
   end
 end
