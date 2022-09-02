@@ -38,7 +38,7 @@ module Reunion
 
 
     def parse_date(text)
-      Date.strptime(text + " UTC", '%Y-%m-%d %H:%M %Z')
+      Date.strptime("#{text} UTC", '%Y-%m-%d %H:%M %Z')
     end 
 
     def parse(text)
@@ -52,7 +52,9 @@ module Reunion
 
     def parse_row(l)
       available_date = parse_date(l[:available_on_utc] || l[:available_on])
-      #created_date = parse_date(l[:created_utc] || l[:created])
+      created_date = parse_date(l[:created_utc] || l[:created])
+      
+      date = available_date #created_date #available_date > Date.parse("2020-12-31") ? available_date : created_date
       desc =  l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
@@ -84,7 +86,7 @@ module Reunion
       if txn_type == :transfer && amount < 0 then
         # Payout should bring balance to zero 
         results << {
-          date: available_date,
+          date: date,
           balance: 0
         }
       end 
@@ -92,14 +94,14 @@ module Reunion
         # Payouts and charges and refunds can have fees
         # adjustment fee = chargeback fee
         results << {
-          date: available_date,
+          date: date,
           description: desc,
           amount: 0 - fee,
           txn_type: :fee
         }
       end 
       results << {
-          date: available_date,
+          date: date,
           description: desc,
           amount: amount,
           txn_type: txn_type
