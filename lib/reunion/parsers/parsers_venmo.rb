@@ -64,7 +64,7 @@ module Reunion
       recipient = amount > 0 
 
       desc =  l[:note]
-      desc2 = l[:type].downcase == "charge" ? "#{l[:from] charged l[:to]} "
+      desc2 = l[:type].downcase == "charge" ? "#{l[:from]} charged #{l[:to]} " : "TODO"
 
 
 
