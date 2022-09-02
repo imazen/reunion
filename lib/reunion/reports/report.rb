@@ -5,7 +5,7 @@ module Reunion
     def initialize(slug, title: slug, filter: ->(t){true}, subreports: [], 
       calculations: [], group_only: false, options: {}, inherit_filters: true)
       @slug = slug
-      @title = title || slug.to_s.gsub("_\-", " ").capitalize
+      @title = title || slug.to_s.tr('_',' ').tr('-',' ').capitalize
       @filter = filter
       @calculations = calculations + subreports.select{|r| r.is_a?(ReportValue)}
       @subreports = subreports.reject{|r| r.is_a?(ReportValue)}
