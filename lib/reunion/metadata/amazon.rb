@@ -1,5 +1,5 @@
 #Generate intersection files
-require 'pry'
+# require 'pry'
 module Reunion
   module Metadata
 
