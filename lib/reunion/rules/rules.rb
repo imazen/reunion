@@ -69,7 +69,7 @@ module Reunion
     end
 
     def add_query_methods
-      schema.fields.each_pair do |k,v|
+      schema.fields.each_pair do |k, v|
         v.query_methods.each do |smd|
           smd.name ||= :compare
 
@@ -277,7 +277,7 @@ module Reunion
       raise "Unrecognized method #{method}; must be one of #{rule_methods.keys * ' '}" if type.nil?
 
       conditions = type.kind == :action ? nil : type.schema_method_definition.build.call(type.field, args)
-      conditions = Re::Not(conditions) if type.exclude
+      conditions = Re::Not.new(conditions) if type.exclude
 
       part = {name: method, 
               arguments: args, 
