@@ -5,7 +5,8 @@ module Reunion
       @readonly = readonly
       @critical = critical
       @display_tags = display_tags
-    end 
+    end
+
     def normalize(value)
       value
     end
@@ -289,14 +290,10 @@ module Reunion
 
     def query_methods
 
-      norm_down = -> (val){
-        val = normalize(val)
-        val.nil? ? nil : val.downcase
-      }
       [SchemaMethodDefinition.new(schema_field: self, name: :compare, 
         example: "'case-insensitve-match'|/regexp/i|'^prefix'|['multiple','matches',/andregexps/i]",
         prep_data: -> (field,value,target){
-          target["#{field}.downcase".to_sym] = norm_down.call(value)
+          target["#{field}.downcase".to_sym] = normalize(value)&.downcase
         },
         build: ->(field, args){
           field_name = "#{field}.downcase".to_sym
@@ -306,7 +303,7 @@ module Reunion
             elsif arg.respond_to?(:call)
               Re::Cond.new(field, :lambda, arg)
             else 
-              arg = norm_down.call(arg)
+              arg = normalize(arg)&.downcase
               if arg && arg.start_with?("^")
                 Re::Cond.new(field_name,:prefix, arg[1..-1])
               else
