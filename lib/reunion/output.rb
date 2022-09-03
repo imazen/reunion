@@ -23,35 +23,35 @@ class Reunion::Export
   end
 
   def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority])
-    main_columns = [:date, :amount, :description]
+    main_columns = [:date, :amount, :description, :txn_type] ## TODO add txn_type to bypass json generation
     main_columns.unshift(:id) if txns.count{|t| t[:id]} > txns.count * 2 / 3
     drop_columns.concat(main_columns)
 
-    data = txns.map do |t| 
+    data = txns.map do |t|
       remainder = {}.merge(t.data)
-      remainder = remainder.delete_if{|k,v| v.nil? || ((v.is_a?(Array) || v.is_a?(String)) && v.empty?) }
-      remainder.each_pair{ |k,v| remainder[k] = t.schema.format_field(k,v)}
+      remainder = remainder.delete_if { |k, v| v.nil? || ((v.is_a?(Array) || v.is_a?(String)) && v.empty?) }
+      remainder.each_pair{ |k,v| remainder[k] = t.schema.format_field(k, v)}
 
 
-      row = Hash[main_columns.map{|k| remainder.key?(k) ? [k, remainder[k]] : nil}.compact]
+      row = Hash[main_columns.map { |k| remainder.key?(k) ? [k, remainder[k]] : nil }.compact]
       drop_columns.each{|c| remainder.delete(c)}
-      remainder = Hash[remainder.to_a.sort_by{|p| p[0]}]
-      row[:json] = JSON.generate(remainder)
+      remainder = Hash[remainder.to_a.sort_by { |p| p[0] }]
+      row[:json] = JSON.generate(remainder) unless remainder.empty?
       row
     end
-    pretty_tsv((main_columns + [:json]).map{|name| {name: name.to_s.split.map(&:capitalize).join(' ')}}, data)
+    pretty_tsv((main_columns + [:json]).map { |name| {name: name.to_s.split.map(&:capitalize).join(' ')} }, data)
   end
 
 
 
   def pretty_reconcile_tsv(records)
     pretty_tsv([{name: "Date", format: lambda {|v| v.strftime("%Y-%m-%d")}},
-         {name:"Amount", format: "%.2f"},
-         {name:"Balance",  format: "%.2f"},
-         {name:"Discrepancy", format: "%.2f"},
-         {name:"Description"},
-         {name:"Source"},
-         {name:"Id"},
+         { name:"Amount", format: "%.2f"},
+         { name:"Balance",  format: "%.2f"},
+         { name:"Discrepancy", format: "%.2f"},
+         { name:"Description"},
+         { name:"Source"},
+         { name:"Id"},
           ], records)
   end
 
