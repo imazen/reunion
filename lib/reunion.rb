@@ -11,7 +11,6 @@ require 'fileutils'
 require 'digest/sha1'
 require 'json'
 require 'triez'
-require 'ruby-prof'
 
 class Array
   def stable_sort_by(&block)
