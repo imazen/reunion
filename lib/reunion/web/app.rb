@@ -1,7 +1,6 @@
 require "sinatra/base"
 require "slim"
 require "json"
-require "rouge"
 
 module Rack
   class CommonLogger
@@ -234,6 +233,8 @@ module Reunion
       end 
 
       get '/rules/:setname' do |setname|
+        
+        require "rouge"
         rules = org.rule_sets
 
         set = rules.find{|r| r[:name].downcase == setname}
