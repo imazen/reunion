@@ -45,24 +45,26 @@ module Reunion
     def load_and_merge(schema)
       @schema = schema || @schema
 
-      #Per source file, 
-      @input_files.each do |af|
-        af.load(schema)
+      #1 thread per source file, 
+      @input_files.map do |af|
+        
+          af.load(schema)
 
-        #Set default currency
-        af.transactions.each{|t| t[:currency] ||= currency}
+          #Set default currency
+          af.transactions.each { |t| t[:currency] ||= currency }
 
-        #Drop other currencies if so configured
-        if @drop_other_currencies
-          currency_mismatch = af.transactions.select{|t| t[:currency].to_s.upcase.to_sym != currency }
-          currency_mismatch.each{|t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
-        end
+          #Drop other currencies if so configured
+          if @drop_other_currencies
+            currency_mismatch = af.transactions.select{|t| t[:currency] != currency && t[:currency].to_s.upcase.to_sym != currency }
+            currency_mismatch.each { |t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
+          end
 
+        
+          # Use the last transaction date for the priority
+          af.transactions.each do |t|
+            t[:priority] ||= af.last_txn_date
+          end
        
-        #Use the last transaction date for the priority
-        af.transactions.each do |t| 
-          t[:priority] ||= af.last_txn_date
-        end 
       end
 
       #Discard any overlaps configured between parsers
@@ -70,7 +72,7 @@ module Reunion
         overlapped = find_overlaps(@input_files.select{|f| f.parser == pair[:keep]}, 
                       @input_files.select{|f| f.parser == pair[:discard]})
 
-        overlapped.each{|t| t[:discard] = true; t[:discard_reason] = "Transaction (from #{pair[:keep]} overlapped one parsed with #{pair[:discard]}"}
+        overlapped.each {|t| t[:discard] = true; t[:discard_reason] = "Transaction (from #{pair[:keep]} overlapped one parsed with #{pair[:discard]}"}
       end
 
       #Concatenate account transactions
