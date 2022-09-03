@@ -43,25 +43,36 @@ module Reunion
 
     end 
     def parse!
-      #RubyProf.start if @profile
-      time = Benchmark.measure{
+      Benchmark.bm(label_width = 55) do |benchmark|
+        times = []
+        #ractors = []
         bank_accounts.each do |a|
-          if !truncate_before.nil? then 
-            a.drop_transactions_before(truncate_before) if a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)
-          end 
-          a.load_and_merge(schema)
-          a.reconcile
-
-          Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
-          basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
-          File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
-          File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
+          times << benchmark.report("Loading and merging files for account #{a.name}") do
+            if !truncate_before.nil? && (a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)) then 
+              a.drop_transactions_before(truncate_before) 
+            end
+            a.load_and_merge(schema)
+          end
+          times << benchmark.report("Reconciling account #{a.name} against balances") do
+            a.reconcile
+          end
+          
+          
+          times <<benchmark.report("Writing #{a.permanent_id.to_s}.txt and .reconcile.txt") do
+            basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
+            Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
+            File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
+            File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
+          end
         end
-        @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
-      }
-      result =  "Executed parse and sort of transactions in #{time}"
-      log << result
-      STDERR << result
+        times << benchmark.report('Combining & sorting all transactions') do
+          @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
+        end
+        [times.inject(Benchmark::Tms.new(), :+)]
+      end
+      #result =  "Executed parse and sort of transactions in #{time}"
+      #log << result
+      #STDERR << result
       #profiling_result("parse", RubyProf.stop) if @profile
     end 
     attr_reader :all_transactions 
@@ -115,26 +126,33 @@ module Reunion
 
   
     def compute!
-      
-      #RubyProf.start if @profile
-      time = Benchmark.measure{
-        @overrides = OverrideSet.load(overrides_path, schema)
-        @overrides.apply_all(all_transactions)
-        @rule_sets = create_rule_sets
+      Benchmark.bm(label_width = 55) do |benchmark|
+        benchmark.report("#{all_transactions.length} transactions present") do end
+        benchmark.report('Load and apply overrides') do
+          @overrides = OverrideSet.load(overrides_path, schema)
+          @overrides.apply_all(all_transactions)
+        end
+        benchmark.report("Create rule sets") do
+          @rule_sets = create_rule_sets
+        end
         @rule_sets.each do |r|
-          r[:engine].run(all_transactions)
+          benchmark.report("Execute ruleset #{r[:full_path][-20..-1]}") do
+            r[:engine].run(all_transactions)
+          end 
         end
-        @overrides_results = @overrides.apply_all(all_transactions)
-        @overrides_results[:unused_overrides].each do |ov|
-          log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
+        benchmark.report('Apply overrides again)') do
+          @overrides_results = @overrides.apply_all(all_transactions)
         end
-        @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select{|t| t[:transfer]}, all_transactions)
-        @unmatched_transfers = transfers.select{|t| t[:transfer_pair].nil?}
-      }
-      result =  "Executed rules, transfer detection, and overrides in #{time}"
-      log << result
-      STDERR << result
-      #profiling_result("compute", RubyProf.stop) if @profile
+        benchmark.report('Log override misses)') do
+          @overrides_results[:unused_overrides].each do |ov|
+            log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
+          end
+        end
+        benchmark.report('Pair bank transfers and card payoffs') do
+          @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select { |t| t[:transfer] }, all_transactions)
+          @unmatched_transfers = transfers.select { |t| t[:transfer_pair].nil? }
+        end
+      end
     end
 
     def profiling_result(name, result)
@@ -157,13 +175,27 @@ module Reunion
     end
 
     def export_reports!(report_list = nil)
-      exp = ReportExporter.new
-      datasource = ReportDataSource.new(all_transactions,all_transactions, schema)
-      report_list ||= reports
-      report_list.each do |r|
-        result = ReportGenerator.new.generate(slugs: [r.slug], reports: report_list, datasource: datasource)
-        exp.export(result, File.join(root_dir, "output/reports"))
-      end
+      ensure_computed!
+      time = Benchmark.measure{
+        exp = ReportExporter.new
+        datasource = ReportDataSource.new(all_transactions,all_transactions, schema)
+        report_list ||= reports
+        report_list.each do |r|
+          result = {}
+          report_time = Benchmark.measure{
+            result = ReportGenerator.new.generate(slugs: [r.slug], reports: report_list, datasource: datasource)
+          }
+          message = "Generated #{r.title} in #{report_time}.  Exporting..."
+          write_time = Benchmark.measure{
+            exp.export(result, File.join(root_dir, "output/reports"))
+          }
+          message += " exported in #{write_time}\n"
+          STDERR.puts(message)
+        end
+      }
+      message = "Exported in #{time}"
+      log << message
+      STDERR << message
     end
 
 
