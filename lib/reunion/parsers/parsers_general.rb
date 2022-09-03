@@ -28,7 +28,7 @@ module Reunion
 
       {combined: a.map {|r|
         row = {}.merge(r.to_hash)
-        json = JSON.parse(r[:json]) if r[:json] && !r[:json].strip.empty?
+        json = JSON.parse(r[:json]) if r[:json] && r[:json] != '{}' && !r[:json].strip.empty?
         row = row.merge(json) if json
         row
       }}
@@ -44,7 +44,7 @@ module Reunion
         combined: a.map{|r|
           row = {}.merge(r)
           #merge JSON row
-          if r[:json] && !r[:json].strip.empty?
+          if r[:json] && !r[:json].strip.empty? && r[:json] != '{}'
             json = JSON.parse(r[:json]) 
             if json 
               json = Hash[json.map{|k,val| [k.strip.to_sym,val] } ]
