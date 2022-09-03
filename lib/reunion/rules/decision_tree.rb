@@ -1,6 +1,4 @@
 module Reunion
-
-
   module Re
     #eq, gt, lt,  between_inclusive include, regex, prefix, lambda, yes
     Cond = Struct.new(:key, :comparator, :value, :not)
@@ -77,8 +75,8 @@ module Reunion
         end
 
         def add_subnodes_from_pairs(possible_pairs)
-          pairs = possible_pairs.select{|condition,chain| chain.node == self || (chain.node == nil && parent == nil)}
-          conditions = pairs.map{|co,chain|co}.uniq.compact
+          pairs = possible_pairs.select{ |condition, chain| chain.node == self || (chain.node == nil && parent == nil)}
+          conditions = pairs.map { |co, chain| co }.uniq.compact
           if conditions.length == 1
             add_simple_subnode(conditions.first,pairs)
           elsif conditions.length > 1 && (conditions.first.comparator == :eq || conditions.first.comparator == :prefix)
@@ -104,28 +102,37 @@ module Reunion
         end
 
         def add_hash_subnodes(pairs)
-          h = {}
-          pairs.each do |c, chain|
-            h[c] ||= []
-            h[c] << chain
-          end
-
           p = DecisionNode.new(self)
           children << p
-          h.each do |co, chains|
-            remaining_chains = chains.select { |chain| chain.node == self || (chain.node.nil? && parent.nil?)}
+
+          # Collect duplicate values into hash
+          hash = {}
+          pairs.each do |condition, chain|
+            hash[condition] ||= []
+            hash[condition] << chain
+          end
+
+          # Create new hash based on conditions
+          nodes_by_value = {}
+
+          hash.each do |condition, chains|
+            remaining_chains = chains.select { |chain| chain.node == self || (chain.node.nil? && parent.nil?) }
             next if remaining_chains.count < 1
 
-            h[co] = n = DecisionNode.new(p)
+            n = DecisionNode.new(p)
             n.comparator = :yes
             n.chains_touching = remaining_chains
             remaining_chains.each do |chain|
-              chain.conditions.delete(co)
+              chain.conditions.delete(condition)
               chain.node = n
               n.results << chain.result if chain.conditions.empty?
             end
             p.children << n
             n.add_subnodes
+
+            raise "duplicate node for condition #{condition.value} #{condition} found: #{nodes_by_value[condition.value].inspect}" if !nodes_by_value[condition.value].nil?
+            
+            nodes_by_value[condition.value] = n
           end
 
           first_co = pairs.first[0]
@@ -133,12 +140,12 @@ module Reunion
 
           if first_co.comparator == :eq
             p.comparator = :in_hash
-            p.value = Hash[h.to_a.map{|k,v| [k.value,v]}]
+            p.value = nodes_by_value
           elsif first_co.comparator == :prefix
             p.comparator = :in_trie
             t = Triez.new value_type: :object
-            h.each do |k, v|
-              t[k.value] = v
+            nodes_by_value.each do |k, v|
+              t[k] = v
             end
             p.value = t
           else
@@ -155,7 +162,7 @@ module Reunion
           bang = !!@not ? '!' : ''
 
           (" " * indent) + ">#{key} #{bang}#{comparator} #{value} -> #{results.count} results\n" +
-              children.map { |c| c.inspect(indent + 2)} + "\n"
+              children.map { |c| c.inspect(indent + 2)}.join("\n")
         end
 
 
@@ -195,8 +202,12 @@ module Reunion
         end
 
         def get_results(data, &block)
+  
           if @comparator == :in_hash
-            @value[data[@key]]&.get_results(data, &block)
+            sub_value = @value[data[@key]]
+            raise "Not a node: #{sub_value.inspect}" unless sub_value.nil? || sub_value.respond_to?(:get_results)
+
+            sub_value&.get_results(data, &block)
             return false
           end
           if @comparator == :in_trie
@@ -219,7 +230,7 @@ module Reunion
           stats = {}
           chains.each do |chain|
             next if chain.node != in_node
-            raise "TypeError #{chain.conditions.inspect}" unless Array ===chain.conditions 
+            raise "TypeError #{chain.conditions.inspect}" unless Array === chain.conditions 
 
             chain.conditions.each do |c|
               key = get_condition_reuse_hash(c)
