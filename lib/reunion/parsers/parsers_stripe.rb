@@ -101,15 +101,24 @@ module Reunion
           date: date,
           description: desc,
           amount: 0 - fee,
-          txn_type: :fee
+          txn_type: :fee,
+          subledger: :bank_fees,
+          tax_category: :bank_fees,
+          skip_compute: true
         }
       end
-      results << {
+      main =  {
         date: date,
         description: desc,
         amount: amount,
         txn_type: txn_type
       }
+      if txn_type == :charge
+        main[:subledger] = :sales
+        main[:tax_category] = :sales
+        main[:skip_compute] = true
+      end
+      results << main
       results
     end 
   end

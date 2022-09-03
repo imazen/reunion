@@ -3,7 +3,14 @@ module Reunion
   class Organization
 
     attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
+    attr_reader :all_transactions
+
     
+
+    attr_reader :rule_sets, :overrides
+
+    attr_reader :transfer_pairs, :unmatched_transfers
+
     @profile = false
 
     def log
@@ -67,6 +74,7 @@ module Reunion
         end
         times << benchmark.report('Combining & sorting all transactions') do
           @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
+          
         end
         [times.inject(Benchmark::Tms.new(), :+)]
       end
@@ -75,9 +83,7 @@ module Reunion
       #STDERR << result
       #profiling_result("parse", RubyProf.stop) if @profile
     end 
-    attr_reader :all_transactions 
-
-    
+  
     def ensure_parsed!
       return if defined? @loaded
       configure
@@ -126,8 +132,11 @@ module Reunion
 
   
     def compute!
+      computable_transactions = @all_transactions.reject { |t| t[:skip_compute] }
+      raise "computed transactions nil!" if computable_transactions.nil?
+
       Benchmark.bm(label_width = 55) do |benchmark|
-        benchmark.report("#{all_transactions.length} transactions present") do end
+        benchmark.report("#{all_transactions.length} transactions (#{computable_transactions&.length} computable) present") {}
         benchmark.report('Load and apply overrides') do
           @overrides = OverrideSet.load(overrides_path, schema)
           @overrides.apply_all(all_transactions)
@@ -137,7 +146,7 @@ module Reunion
         end
         @rule_sets.each do |r|
           benchmark.report("Execute ruleset #{r[:full_path][-20..-1]}") do
-            r[:engine].run(all_transactions)
+            r[:engine].run(computable_transactions)
           end 
         end
         benchmark.report('Apply overrides again)') do
@@ -148,10 +157,13 @@ module Reunion
             log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
           end
         end
-        benchmark.report('Pair bank transfers and card payoffs') do
-          @transfer_pairs, transfers = get_transfer_pairs(all_transactions.select { |t| t[:transfer] }, all_transactions)
+        transfer_txns = computable_transactions.select { |t| t[:transfer] }
+        benchmark.report("Pair #{transfer_txns.length} bank transfers and card payoffs") do
+#         File.open("transfers.txt", 'w') { |f| f.write(Export.new.input_file_to_tsv(transfer_txns)) }
+          @transfer_pairs, transfers = get_transfer_pairs(transfer_txns, computable_transactions)
           @unmatched_transfers = transfers.select { |t| t[:transfer_pair].nil? }
         end
+        benchmark.report("#{ @unmatched_transfers.length} unmatched transfers remain") {}
       end
     end
 
@@ -197,11 +209,6 @@ module Reunion
       log << message
       STDERR << message
     end
-
-
-    attr_reader :rule_sets, :overrides
-
-    attr_reader :transfer_pairs, :unmatched_transfers
 
   
   end
