@@ -56,9 +56,9 @@ module Reunion
     def parse_row(l)
 
       available_date = parse_date(l[:available_on_utc] || l[:available_on])
-      # created_date = parse_date(l[:created_utc] || l[:created])
+      created_date = parse_date(l[:created_utc] || l[:created])
       
-      date = available_date #created_date #available_date > Date.parse("2020-12-31") ? available_date : created_date
+      date = created_date > Date.parse("2020-12-31") ? available_date : created_date
       desc = l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
@@ -103,7 +103,7 @@ module Reunion
           amount: 0 - fee,
           txn_type: :fee,
           subledger: :bank_fees,
-          tax_category: :bank_fees,
+          tax_expense: :bank_fees,
           skip_compute: true
         }
       end
@@ -115,11 +115,11 @@ module Reunion
       }
       if txn_type == :charge
         main[:subledger] = :sales
-        main[:tax_category] = :sales
+        main[:tax_expense] = :sales
         main[:skip_compute] = true
       end
       results << main
       results
-    end 
+    end
   end
 end
