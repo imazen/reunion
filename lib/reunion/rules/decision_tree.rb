@@ -189,7 +189,9 @@ module Reunion
           when :include
             d.include?(@value)
           when :regex
-            @value =~ d
+            match = @value.match?(d)
+            #$stderr << "Regex matched #{value} and #{d}\n" if match
+            match
           when :prefix
             d.start_with?(@value)
           when :lambda
