@@ -42,29 +42,42 @@ module Reunion
       end.flatten
     end
 
-    def load_and_merge(schema)
+    def load_and_merge(schema: , remove_processor_prefixes: nil)
       @schema = schema || @schema
+
+
+      slow_prefixes = remove_processor_prefixes&.select { |prefix| !prefix.include?('*') }
 
       #1 thread per source file, 
       @input_files.map do |af|
         
-          af.load(schema)
-
-          #Set default currency
-          af.transactions.each { |t| t[:currency] ||= currency }
-
-          #Drop other currencies if so configured
-          if @drop_other_currencies
-            currency_mismatch = af.transactions.select{|t| t[:currency] != currency && t[:currency].to_s.upcase.to_sym != currency }
-            currency_mismatch.each { |t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
-          end
-
+        af.load(schema)
         
-          # Use the last transaction date for the priority
-          af.transactions.each do |t|
-            t[:priority] ||= af.last_txn_date
+        af.transactions.each do |txn|
+          # Filter out processor prefixes
+          unless remove_processor_prefixes.nil?
+            desc = txn[:description]
+            prefixes_to_check = desc.include?('*') ? remove_processor_prefixes : slow_prefixes
+            prefixes_to_check.each do |prefix|
+              desc.delete_prefix!(prefix)
+            end
+            desc.lstrip!
+            txn[:description] = desc
           end
-       
+          
+          #Set default currency
+          txn[:currency] ||= currency
+
+          # Use the last transaction date for the priority
+          txn[:priority] ||= af.last_txn_date
+        end
+
+        #Drop other currencies if so configured
+        if @drop_other_currencies
+          currency_mismatch = af.transactions.select{|t| t[:currency] != currency && t[:currency].to_s.upcase.to_sym != currency }
+          currency_mismatch.each { |t| t[:discard] = true; t[:discard_reason] = "Transaction currency (#{t[:currency]} doesn't match bank (#{currency}"}
+        end
+
       end
 
       #Discard any overlaps configured between parsers

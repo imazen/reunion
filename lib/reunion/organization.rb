@@ -3,7 +3,7 @@ module Reunion
   class Organization
 
     attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
-    attr_reader :all_transactions
+    attr_reader :all_transactions, :remove_processor_prefixes
 
     
 
@@ -48,7 +48,7 @@ module Reunion
       no_parser_files = all_input_files.select{|f| f.parser.nil? }
       log << "Failed to match the following files to parsers (they were therefore not added to their accounts either):\n" + no_parser_files.map{|f| f.path} * "\n" if no_parser_files.length > 0
 
-    end 
+    end
     def parse!
       Benchmark.bm(label_width = 55) do |benchmark|
         times = []
@@ -56,9 +56,9 @@ module Reunion
         bank_accounts.each do |a|
           times << benchmark.report("Loading and merging files for account #{a.name}") do
             if !truncate_before.nil? && (a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)) then 
-              a.drop_transactions_before(truncate_before) 
+              a.drop_transactions_before(truncate_before)
             end
-            a.load_and_merge(schema)
+            a.load_and_merge(schema: schema, remove_processor_prefixes: remove_processor_prefixes)
           end
           times << benchmark.report("Reconciling account #{a.name} against balances") do
             a.reconcile
@@ -67,7 +67,7 @@ module Reunion
           
           times <<benchmark.report("Writing #{a.permanent_id.to_s}.txt and .reconcile.txt") do
             basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
-            Dir.mkdir(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
+            FileUtils.mkdir_p(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
             File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}
             File.open("#{basepath}.reconcile.txt", 'w'){|f| f.write(Export.new.pretty_reconcile_tsv(a.reconciliation_report))}
           end
