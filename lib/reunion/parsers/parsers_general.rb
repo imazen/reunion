@@ -1,14 +1,15 @@
-
 module Reunion
   class OfxParser < ParserBase
     def parse(text)
       transactions = []
       statements = []
       OFX(StringIO.new(text)) do
-        statements << {date: account.balance.posted_at, balance: account.balance.amount}
-        transactions += account.transactions.map do |t|
-          {amount: t.amount, date: Date.parse(t.posted_at.to_s), description: t.name, description2: t.memo}
-        end 
+        accounts.each do |account|
+          statements << { date: account.balance.posted_at, balance: account.balance.amount }
+          transactions += account.transactions.map do |t|
+            { amount: t.amount, date: Date.parse(t.posted_at.to_s), description: t.name, description2: t.memo }
+          end
+        end
       end
       {transactions: transactions.stable_sort_by { |t| t[:date].iso8601 }, statements: statements}
     end
@@ -24,15 +25,15 @@ module Reunion
 
   class CsvParser < ParserBase
     def parse(text)
-      a = CSV.parse(text.rstrip,**csv_options).select{|r|true}
+      a = CSV.parse(text.rstrip,**csv_options).select { |r| true }
 
-      {combined: a.map {|r|
+      { combined: a.map { |r|
         row = {}.merge(r.to_hash)
         json = JSON.parse(r[:json]) if r[:json] && r[:json] != '{}' && !r[:json].strip.empty?
         row = row.merge(json) if json
         row
       }}
-    end 
+    end
   end
 
 
