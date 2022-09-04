@@ -189,7 +189,7 @@ module Reunion
           when :include
             d.include?(@value)
           when :regex
-            @value === d
+            @value =~ d
           when :prefix
             d.start_with?(@value)
           when :lambda
