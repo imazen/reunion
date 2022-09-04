@@ -45,7 +45,7 @@ module Reunion
   class SymbolField < SchemaField
 
     def validate(value)
-      unless value.nil? || value.instance_of?(Symbol)
+      unless value.nil? || value.is_a?(Symbol)
         return "Value #{value.inspect} (#{value.class.name}) is not a Symbol"
       end
       if value_required && value.nil?
