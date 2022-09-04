@@ -95,7 +95,7 @@ module Reunion
       # Parse amounts
       total = parse_venmo_amount(l[:amount_total])
       fee = parse_venmo_amount(l[:amount_fee]) || 0
-      tip = parse_venmo_amount(l[:amount_tip]) || 0
+      # tip = parse_venmo_amount(l[:amount_tip]) || 0
 
       
       recipient = txn_type == :charge ? l[:from] : l[:to]
