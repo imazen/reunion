@@ -99,27 +99,35 @@ module Reunion
 
       
       recipient = txn_type == :charge ? l[:from] : l[:to]
+      sender = txn_type == :charge ? l[:to] : l[:from]
 
       note = l[:note]
 
-      describe_exchange = txn_type == :charge ? "#{recipient} charged you via Venmo" : "#{recipient} was paid via Venmo"
       
       # You only ever get one of these two
       # target_account = Venmo balance WHEN you receive funds
       # target_account = something else WHEN you withdraw funds to checking, txn_type should be :transfer
       source_account = l[:funding_source] || ''
       target_account = l[:destination] || ''
-
       # Parse funding source
       # Amex Send Account - create offset transactions w/o transfer tag
       # Venmo balance - treat these normally
       # All others - create offset transactions with transfer tag
-
       balance_txn = source_account.strip.downcase == "venmo balance" || target_account.strip.downcase == "venmo balance"
       tag_as_transfer = source_account.strip.downcase != "amex send account" && target_account.strip.downcase != "amex send account"
       
+
+      # Create a description that makes sense
+      if total.negative?
+        describe_exchange = txn_type == :charge ? "#{recipient} charged you via Venmo" : "#{recipient} was paid via Venmo"
+      else
+        describe_exchange = "#{sender} paid you via Venmo"
+        raise "How can you be Venmo'd to something other than your balance? #{l}" unless balance_txn || txn_type == :refund
+      end 
       fee_desc = fee != 0 ? " (fee #{'%.2f' % fee})" : ''
       desc = "#{describe_exchange}#{fee_desc} for: #{note}"
+
+
       # Withdrawals to a bank account we handle differently
       if txn_type == :transfer
         return [{
@@ -129,15 +137,18 @@ module Reunion
           amount: total,
           transfer: true
         }]
-      end 
+      end
 
       results = []
 
       unless balance_txn
         # Create matching txn for withdrawal from funding source
+        transfer_desc = txn_type == :refund ? 
+              "VENMO REFUND* #{note}, originally funded by #{target_account}"
+              : "VENMO FUNDING FOR* #{describe_exchange}, funded by #{source_account} for: #{note}"
         results << {
           date:date,
-          description: "VENMO FUNDING FOR* #{describe_exchange}, funded by #{source_account} for: #{note}",
+          description: transfer_desc,
           amount: total * -1,
           transfer: tag_as_transfer,
         }
