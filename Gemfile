@@ -14,6 +14,7 @@ gem 'rouge'
 gem "webrat", :group => :development
 gem "pry", :group => :development
 gem "rake", :group => :development
+gem "minitest"
 #gem "ruby-prof"
 #gem 'rack-mini-profiler'
 #gem 'stackprof'
