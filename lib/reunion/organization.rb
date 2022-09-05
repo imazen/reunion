@@ -58,7 +58,7 @@ module Reunion
             if !truncate_before.nil? && (a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)) then 
               a.drop_transactions_before(truncate_before)
             end
-            a.load_and_merge(schema: schema, remove_processor_prefixes: remove_processor_prefixes)
+            a.load_and_merge(schema: schema, remove_processor_prefixes: remove_processor_prefixes, transaction_modifier: method(:modify_transactions) )
           end
           times << benchmark.report("Reconciling account #{a.name} against balances") do
             a.reconcile

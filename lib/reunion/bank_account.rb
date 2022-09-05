@@ -13,7 +13,7 @@ module Reunion
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before, :truncate_after
 
-    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort
+    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort, 
 
 
     def add_parser_overlap_deletion(keep_parser: nil, discard_parser: nil)
@@ -42,7 +42,7 @@ module Reunion
       end.flatten
     end
 
-    def load_and_merge(schema: , remove_processor_prefixes: nil)
+    def load_and_merge(schema: , remove_processor_prefixes: nil, transaction_modifier: nil)
       @schema = schema || @schema
 
 
@@ -50,9 +50,7 @@ module Reunion
 
       #1 thread per source file, 
       @input_files.map do |af|
-        
         af.load(schema)
-        
         af.transactions.each do |txn|
           # Filter out processor prefixes
           unless remove_processor_prefixes.nil?
@@ -70,6 +68,9 @@ module Reunion
 
           # Use the last transaction date for the priority
           txn[:priority] ||= af.last_txn_date
+
+          # Call the configured lambda
+          transaction_modifier&.call(txn)
         end
 
         #Drop other currencies if so configured
