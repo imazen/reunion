@@ -44,7 +44,7 @@ module Reunion
       def parse(text)
         CSV.parse(text.rstrip,**csv_options).map do |row|
           {amount: parse_amount(row[:item_subtotal]),
-          description: row[:title].strip,
+          description: row[:title]&.strip,
           order_id: row[:order_id].strip,
           seller: (row[:seller] || "Amazon.com").strip,
           order_date: parse_date(row[:order_date]),
@@ -55,32 +55,30 @@ module Reunion
     end
     class AmazonAggregator
       def factorial(n)
-
-        n == 0 ? 1 : (1..n).inject(:*)
+        n.zero? ? 1 : (1..n).inject(:*)
       end
+
       def find_subset(items, desired_sum)
-        return nil if items.length == 0
+        return nil if items.empty?
 
         (1..items.length).each do |find_item_count|
           inner_combination_count = factorial(items.length) / (factorial(items.length - find_item_count) * factorial(find_item_count))
-          if inner_combination_count > 100000
+          if inner_combination_count > 500000
 
-            STDERR << "Too many combinations (#{inner_combination_count}) required to find #{find_item_count} items of #{items.length} which total #{format_usd(desired_sum)} in order #{items[0][:order_id]}\n" 
+            $stderr << "Too many combinations (#{inner_combination_count}) required to find #{find_item_count} items of #{items.length} which total #{format_usd(desired_sum)} in order #{items[0][:order_id]} shipped #{items[0][:ship_date]}\n" 
             return nil
-          end 
+          end
 
           items.combination(find_item_count) do |set|
-            total = set.inject(0){|sum, item| sum + item[:amount]}
-
-            
+            total = set.inject(0){ |sum, item| sum + item[:amount] }
             return set if total == desired_sum
-          end 
-        end 
-        return nil #No perfect total
-      end 
+          end
+        end
+        nil #No perfect total
+      end
+
       def format_usd(value)
         value.nil? ? "" : ("$%.2f" % value)
-
       end
 
       def describe(candidates)
