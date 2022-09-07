@@ -55,24 +55,75 @@ Withdraw Funds to a Bank Account
 
 module Reunion
   class PayPalBalanceAffectingPaymentsTsvParser < ParserBase
+    def parse(text)
+      # Paypal uses WINDOWS-1252 - or chinese, japanese, korean, or russian, depeding upon what you've set here:
+      # https://www.paypal.com/ie/cgi-bin/webscr?cmd=_profile-language-encoding
+      # No, there's no link, you have to visit the page directly
+      #text.encode!('UTF-8', 'WINDOWS-1252')
+
+      # PayPal's sadistic jerks pad randomly headers with spaces, in 
+      # addition to failing to escape characters in CSVs
+      # Did you know that they also edit history? The description can change!
+      #In 2022 they use UTF-8 and a byte order mark, yay!
+      text = text.force_encoding("UTF-8")
+      text.lstrip!
+      text.sub!("\xEF\xBB\xBF".force_encoding("UTF-8"), '')
+
+      parse_transactions(CSV.parse(text, **csv_options.merge({col_sep: "\t"})))
+    end 
+  end 
+  class PayPalBalanceAffectingPaymentsCsvParser < ParserBase
 
     def parse_txn_type(type)
+
+#       https://developer.paypal.com/docs/reports/reference/tcodes/
+      # Credit types
+      # Payment Refund		2	
+      # PayPal Buyer Credit Payment Funding		8	 - to pay for a txn from buyer credit
+      # BML Credit - Transfer from BML		16	- to pay from paypal credit/ bill me later
+      # Bank Deposit to PP Account 		19	
+      # General Card Deposit		28	
+
+      # Debit types
+      # Buyer Credit Payment Withdrawal - Transfer To BML			3
+      # Donation Payment			1
+      # Express Checkout Payment			39
+      # General Buyer Credit Payment			1 - When paypal credit is reduced through a return (tr)
+      # General Card Withdrawal			1
+      # General Payment			24
+      # PreApproved Payment Bill User Payment			3 - subscription
+      # Website Payment			1
+
+
       type = type.strip.downcase
       case
-      when type.end_with?("received") || type == "Website Payments Pro API Solution".downcase
+      when type.end_with?("received") || type == "website payments pro api solution".downcase
         :income
-      when type.end_with?("sent") || type.end_with?("purchase")
+      when type == "general buyer credit payment"
+        :transfer
+      when type.end_with?("sent") || type.end_with?("purchase") || type.end_with?("payment")
         :purchase
       when type == "temporary hold" || type == "currency conversion"
         :fee
-      when type == "refund"
+      when type == "refund" || type == "payment refund"
         :refund
-      when type.end_with?(" a bank account") || 
-              type.end_with?(" a personal check") || 
+      when type.end_with?(" a bank account") ||
+              type.end_with?(" a personal check") ||
                 type.start_with?("check withdrawl") ||
                 type == "charge from credit card"
         :transfer
+      when type == "general card withdrawal" # paypal refunded your card for a return
+        :transfer
+      when type == "buyer credit payment withdrawal - transfer to bml" # moving deposited fund to repay paypal credit
+        :transfer #but not with bank/cards
+      when type == "bml credit - transfer from bml" || # drawing on credit
+           type == "bml withdrawal - transfer to bml" ||
+           type == "paypal buyer credit payment funding" || # drawing on credit
+           type == "general card deposit" || # paypal charged your card for a balance payment or purchase
+           type == "bank deposit to pp account" # paypal charged your bank for a balance payment or purchase
+        :transfer
       else
+        raise "Unsupported Paypal transaction type #{type}"
         nil
       end 
     end
@@ -148,49 +199,69 @@ module Reunion
           b[:sales_tax] = 0
           b[:txn_fee] = 0
           b[:paypal_gross] = fee
-          [a,b]
+          [a, b]
         else
           t
         end
       end.flatten
-    end 
+    end
 
     def parse(text)
       # Paypal uses WINDOWS-1252 - or chinese, japanese, korean, or russian, depeding upon what you've set here:
       # https://www.paypal.com/ie/cgi-bin/webscr?cmd=_profile-language-encoding
       # No, there's no link, you have to visit the page directly
+      # text.encode!('UTF-8', 'WINDOWS-1252')
 
-
-      text.encode!('UTF-8', 'WINDOWS-1252')
-
-
-
-      # PayPal's sadistic jerks pad randomly headers with spaces, in 
+      # PayPal's sadistic jerks pad randomly headers with spaces, in
       # addition to failing to escape characters in CSVs
+      # Did you know that they also edit history? The description can change!
 
-      #Did you know that they also edit history? The description can change!
+      #In 2022 they use UTF-8 and a byte order mark, yay!
+      text = text.force_encoding("UTF-8")
+      text.lstrip!
+      text.sub!("\xEF\xBB\xBF".force_encoding("UTF-8"), '')
+      # $stderr << "Parsing CSV:\n" + text[0..4000]
 
-      a = CSV.parse(text,**csv_options.merge({col_sep:"\t"}))
+      parse_transactions(CSV.parse(text, **csv_options))
+    end
 
-      transactions = a.map do |r|
+    def parse_transactions(rows)
 
-        datetime = DateTime.strptime("#{r[:date]}|#{r[:time]}|#{r[:time_zone]}", '%m/%d/%Y|%T|%z')
+      transactions = rows.map do |r|
 
-        {date: datetime, 
-          amount: parse_amount(r[:net]), 
+        datetime = DateTime.strptime("#{r[:date]}|#{r[:time]}|#{r[:timezone]}", '%m/%d/%Y|%T|%Z')
+
+        txn_type = parse_txn_type(r[:type])
+        raise "Faile to parse txn type #{r[:type]}" if txn_type.nil?
+
+        description2 = r[:item_title] || ""
+        description2.delete_prefix!(r[:subject] || "")
+        description2 = (r[:subject] || "") + description2
+
+
+        {
+          date: datetime,
+          amount: parse_amount(r[:net]),
           balance_after: parse_amount(r[:balance]),
           id: r[:transaction_id],
           ref_id: r[:reference_txn_id],
           currency: r[:currency],
           description: r[:name].gsub(/[\u{80}-\u{ff}]/,''),
+          description2: description2,
           to_email: r[:to_email_address],
-          paypal_type:r[:type],
-          txn_type: parse_txn_type(r[:type]),
+          paypal_type: r[:type],
+          txn_type: txn_type,
           paypal_country: r[:country],
-          sales_tax: parse_amount(r[:sales_tax]),
+          sales_tax: r[:sales_tax]&.empty? ? nil : parse_amount(r[:sales_tax]),
           txn_fee: parse_amount(r[:fee]),
-          paypal_gross: parse_amount(r[:gross])
+          paypal_gross: parse_amount(r[:gross]),
+          transfer: txn_type == :transfer ? true : nil
         }
+
+      rescue
+        $stderr << "\n\nError processing row:\n"
+        $stderr << r.inspect
+        raise
       end
       transactions.reverse!
       transactions = flatten_currency_conversion(transactions)
@@ -203,7 +274,7 @@ module Reunion
       transactions = separate_fees(transactions)
 
       # balance_after is not being used for reconciliation, we'd have to name it 'balance' and use 'combined' instead of 'transactions'
-      return {transactions:transactions} 
+      { transactions: transactions }
     end 
   end
 end 
