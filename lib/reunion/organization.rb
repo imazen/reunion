@@ -5,7 +5,10 @@ module Reunion
     attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
     attr_reader :all_transactions, :remove_processor_prefixes
 
-    
+
+    def web_app_title
+      self.class.name.split('::').last.sub('Org', '') || 'Reunion'
+    end
 
     attr_reader :rule_sets, :overrides
 
@@ -58,7 +61,7 @@ module Reunion
             if !truncate_before.nil? && (a.truncate_before.nil? || (!a.truncate_before.nil? && a.truncate_before < truncate_before)) then 
               a.drop_transactions_before(truncate_before)
             end
-            a.load_and_merge(schema: schema, remove_processor_prefixes: remove_processor_prefixes, transaction_modifier: method(:modify_transactions) )
+            a.load_and_merge(schema: schema, remove_processor_prefixes: remove_processor_prefixes, transaction_modifier: respond_to?(:modify_transactions) ? method(:modify_transactions) : nil)
           end
           times << benchmark.report("Reconciling account #{a.name} against balances") do
             a.reconcile
