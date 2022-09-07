@@ -25,7 +25,7 @@ module Reunion
 
   class CsvParser < ParserBase
     def parse(text)
-      a = CSV.parse(text.rstrip,**csv_options).select { |r| true }
+      a = CSV.parse(text.rstrip, **csv_options).select { |r| true }
 
       { combined: a.map { |r|
         row = {}.merge(r.to_hash)
@@ -64,16 +64,11 @@ module Reunion
       results = super(text)
       results[:combined] = results[:combined].map do |t|
         row = {}.merge(t)
-        row[:balance] =  parse_amount(row[:balance]) if !row[:balance].nil? && !row[:balance].strip.empty?
+        row[:balance] = !row[:balance].nil? && !row[:balance].strip.empty? ? parse_amount(row[:balance]) : nil
+        row[:amount] = !row[:amount].nil? && !row[:amount].strip.empty? ? parse_amount(row[:amount]) : nil
         row[:date] = Date.parse(row[:date])
-        if !row[:amount].nil? then
-          if row[:amount].strip.empty?
-            row[:amount] = nil 
-          else
-            row[:amount] = parse_amount(row[:amount])
-          end
-        end 
         raise "Make sure your tabs haven't been converted to spaces, missing both Amount and Balance columns #{row.inspect}" if !row.has_key?(:amount) && !row.has_key?(:balance)
+
         row
       end
       results
