@@ -108,8 +108,10 @@ module Reunion
               old_value = txn[k]
               new_value = v.merge(old_value, args)
               changed = old_value != new_value
-              txn[k] = new_value if changed
-              changed
+              override_applies = !txn[:overridden_keys].nil? && txn[:overridden_keys].include?(k)
+              apply_change = changed && !override_applies
+              txn[k] = new_value if apply_change
+              apply_change
             }
             name = v.is_a?(TagsField) ? k.to_s.gsub(/s\Z/i,"") : k.to_s
             p.with_aliases(["set", "use"].map{|verb| "#{verb}_#{name}".to_sym} + [name.to_sym])

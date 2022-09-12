@@ -150,12 +150,25 @@ module Reunion
       use_count = Hash[overrides.keys.map{|k| [k, 0]}]
       transactions.each do |t|
         result = by_txn(t)
+        prev_str = t.just_data.inspect
         if result
           result.changes.each_pair do |k,v|
+            #$stderr << "Changing #{k.inspect} -> #{v.inspect}\n"
             t[k] = v
+            t[:overridden_keys] ||= [] # Tell rules to not mess with this later
+            t[:overridden_keys] << k
+            # require 'differ'
+            # Differ.format = :color
+            # diff = Differ.diff_by_char(t.just_data.inspect, prev_str)
+            # $stderr << diff
+            # $stderr << "\n\n"
+            #exit(0)
           end
           use_count[t.lookup_key] += 1
+
+          
         end
+        
       end
       use_count.to_a.select{|k,c| c > 1}.each do |k,c|
         STDERR << "Override used #{c} times: #{overrides[k].lookup_key_basis}\n"

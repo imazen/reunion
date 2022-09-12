@@ -1,7 +1,7 @@
 class Reunion::Export
 
   def transactions_to_tsv(txns)
-    input_file_to_tsv(txns, drop_columns: [:subindex, :schema, :source, :priority, :skip_compute])
+    input_file_to_tsv(txns, drop_columns: [:subindex, :overridden_keys, :schema, :source, :priority, :skip_compute])
   end
 
   def transactions_to_csv_allow_fields(txns, allowed_field_names) 
@@ -22,7 +22,7 @@ class Reunion::Export
     end
   end
 
-  def input_file_to_tsv(txns, drop_columns: [:account_sym, :currency, :subindex, :schema, :source, :priority, :skip_compute])
+  def input_file_to_tsv(txns, drop_columns: [:account_sym, :overridden_keys, :currency, :subindex, :schema, :source, :priority, :skip_compute])
     main_columns = [:date, :amount, :description] ## TODO add txn_type to bypass json generation
     main_columns.unshift(:id) if txns.count{|t| t[:id]} > txns.count * 2 / 3
     drop_columns.concat(main_columns)

@@ -142,7 +142,12 @@ module Reunion
         benchmark.report("#{all_transactions.length} transactions (#{computable_transactions&.length} computable) present") {}
         benchmark.report('Load and apply overrides') do
           @overrides = OverrideSet.load(overrides_path, schema)
-          @overrides.apply_all(all_transactions)
+          @overrides_results_first = @overrides.apply_all(all_transactions)
+        end
+        benchmark.report('Log override misses') do
+          @overrides_results_first[:unused_overrides].each do |ov|
+            log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
+          end
         end
         benchmark.report("Create rule sets") do
           @rule_sets = create_rule_sets
@@ -152,14 +157,14 @@ module Reunion
             r[:engine].run(computable_transactions)
           end 
         end
-        benchmark.report('Apply overrides again)') do
-          @overrides_results = @overrides.apply_all(all_transactions)
-        end
-        benchmark.report('Log override misses)') do
-          @overrides_results[:unused_overrides].each do |ov|
-            log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
-          end
-        end
+        # benchmark.report('Apply overrides again)') do
+        #   @overrides_results = @overrides.apply_all(all_transactions)
+        # end
+        # benchmark.report('Log override misses)') do
+        #   @overrides_results[:unused_overrides].each do |ov|
+        #     log << "Override unused: #{ov.lookup_key_basis} -> #{ov.changes_json}\n"
+        #   end
+        # end
         transfer_txns = computable_transactions.select { |t| t[:transfer] }
         benchmark.report("Pair #{transfer_txns.length} bank transfers and card payoffs") do
 #         File.open("transfers.txt", 'w') { |f| f.write(Export.new.input_file_to_tsv(transfer_txns)) }

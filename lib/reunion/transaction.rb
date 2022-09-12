@@ -9,6 +9,9 @@ module Reunion
       @data[:schema] = schema unless schema.nil?
     end 
 
+    def just_data
+      @data.reject{|key, value| key == :schema}
+    end
     attr_accessor :data
     def_delegators :@data, :size, :[], :[]=, :map, :each, :hash, :eql?, :delete, :key?, :has_key?
 
