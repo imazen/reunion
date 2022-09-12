@@ -69,7 +69,7 @@ module Reunion
       e = Export.new
       cols = [{name: "Account"},{name: "Date"},{name:"Amount"},{name:"Description"},{name:"Subindex"},{name:"Changes"}]
       rows = overrides.values.map{|ov| {account: ov.account_str, date: ov.date_str, amount: ov.amount_str, description: ov.description, subindex: ov.subindex.to_s, changes: ov.changes_json}}
-
+      rows.reject!{|k,v| k == :changes && v.nil?}
       rows.sort_by!{|r| [r[:date],r[:account], r[:description], r[:amount], r[:subindex]] }
       e.pretty_tsv(cols, rows)
     end
@@ -99,15 +99,19 @@ module Reunion
       by_primary = []
 
       a.each do |r|
-        ov = Override.new
-        ov.schema = schema
-        ov.account_str = r[:account].strip.downcase
-        ov.date_str = Date.parse(r[:date]).strftime("%Y-%m-%d")
-        ov.amount_str = "%.2f" % BigDecimal(r[:amount].gsub(/[\$,]/, ""))
-        ov.description = r[:description].gsub(/\s+/," ").strip
-        ov.subindex = Integer(r[:subindex].strip)
-        ov.load_changes_from_json(r[:changes])
-        by_primary << [ov.lookup_digest, ov]
+        if r[:changes].nil?
+          $stderr << "\nSkipping empty override #{r.inspect}\n" 
+        else
+          ov = Override.new
+          ov.schema = schema
+          ov.account_str = r[:account].strip.downcase
+          ov.date_str = Date.parse(r[:date]).strftime("%Y-%m-%d")
+          ov.amount_str = "%.2f" % BigDecimal(r[:amount].gsub(/[\$,]/, ""))
+          ov.description = r[:description].gsub(/\s+/," ").strip
+          ov.subindex = Integer(r[:subindex].strip)
+          ov.load_changes_from_json(r[:changes])
+          by_primary << [ov.lookup_digest, ov]
+        end 
       end
       set.overrides = Hash[by_primary]
       set
