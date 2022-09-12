@@ -12,7 +12,12 @@ module Reunion
 
     def load(schema)
       text = IO.read(full_path)
-      results = parser.new.parse_and_normalize(text, schema)
+      begin 
+        results = parser.new.parse_and_normalize(text, schema)
+      rescue
+        $stderr << "\nError parsing #{full_path}\n"
+        raise 
+      end 
 
       @transactions = results[:transactions] || []
       @invalid_transactions = results[:invalid_transactions] || []
