@@ -58,7 +58,7 @@ module Reunion
       available_date = parse_date(l[:available_on_utc] || l[:available_on])
       created_date = parse_date(l[:created_utc] || l[:created])
       
-      date = created_date > Date.parse("2020-12-31") ? available_date : created_date
+      date = available_date > Date.parse("2020-12-31") ? available_date : created_date
       desc = l[:description]
       txn_type = parse_txn_type(l[:type])
       amount = parse_amount(l[:amount])
