@@ -29,7 +29,7 @@ module Reunion
 
       { combined: a.map { |r|
         row = {}.merge(r.to_hash)
-        json = JSON.parse(r[:json]) if r[:json] && r[:json] != '{}' && !r[:json].strip.empty?
+        json = parse_json(r[:json])
         row = row.merge(json) if json
         row
       }}
@@ -45,13 +45,8 @@ module Reunion
         combined: a.map{|r|
           row = {}.merge(r)
           #merge JSON row
-          if r[:json] && !r[:json].strip.empty? && r[:json] != '{}'
-            json = JSON.parse(r[:json]) 
-            if json 
-              json = Hash[json.map{|k,val| [k.strip.to_sym,val] } ]
-              row = row.merge(json)
-            end
-          end
+          json = parse_json(r[:json])
+          row = row.merge(json) if json
           row
         }
       } 
@@ -75,6 +70,23 @@ module Reunion
     end
   end
 
+  class OwnerExpenseCsvParser < CsvParser
+    def parse(text)
+      results = super(text)
+      results[:combined] = results[:combined].map do |t|
+        contrib = {}.merge(t)
+        
+        raise "\nExpense row missing amount column: #{contrib.inspect}\n" if contrib[:amount].nil?
+        
+        contrib[:tax_expense] = :owner_contrib
+        contrib[:description] = "Owner contrib: #{contrib[:description]}"
+        contrib[:amount] = parse_amount(contrib[:amount]) * -1
+        [contrib,t]
+      end.flatten
+      results
+    end
+  end
+
   class OwnerExpenseTsvParser < TsvParser
     def parse(text)
       results = super(text)
@@ -88,6 +100,7 @@ module Reunion
       results
     end
   end
+
 
   class MetadataTsvParser < TsvParser
     def parse(text)

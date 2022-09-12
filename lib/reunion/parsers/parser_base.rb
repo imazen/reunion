@@ -69,6 +69,13 @@ module Reunion
     def is_nil_or_whitespace(text)
       text.nil? || text.strip.empty?
     end   
+
+    def parse_json(json)
+      if json && !json.strip.empty? && json != '{}'
+        json = JSON.parse(json) 
+        json = json ? Hash[json.map{|k,val| [k.strip.to_sym,val] } ] : nil
+      end
+    end 
     
 
     def csv_options
