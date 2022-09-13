@@ -197,7 +197,7 @@ module Reunion
         simplified = (params["simple"] == "true")
         begin 
           r = org.generate_report(slugs, simplified_totals: simplified)
-        rescue e
+        rescue Exception => e
           if e.to_s.include?("Failed to find report")
             $stderr << "Report missing... redirecting to parent report\n"
             $stderr << e.to_s
