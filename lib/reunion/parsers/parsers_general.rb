@@ -70,14 +70,15 @@ module Reunion
     end
   end
 
-  class OwnerExpenseCsvParser < CsvParser
-    def parse(text)
-      results = super(text)
+  class OwnerExpenseUtil < CsvParser
+    def fixup_transactions(results)
       results[:combined] = results[:combined].map do |t|
-        contrib = {}.merge(t)
+        contrib = t.slice(:amount, :date, :description, :currency, :account_sym, :source, 
+          :schema)
         
         raise "\nExpense row missing amount column: #{contrib.inspect}\n" if contrib[:amount].nil?
         
+        contrib[:subledger] = :owner_contrib
         contrib[:tax_expense] = :owner_contrib
         contrib[:description] = "Owner contrib: #{contrib[:description]}"
         contrib[:amount] = parse_amount(contrib[:amount]) * -1
@@ -85,19 +86,16 @@ module Reunion
       end.flatten
       results
     end
+  end 
+  class OwnerExpenseCsvParser < CsvParser
+    def parse(text)
+      OwnerExpenseUtil.new.fixup_transactions(super(text))
+    end
   end
 
   class OwnerExpenseTsvParser < TsvParser
     def parse(text)
-      results = super(text)
-      results[:combined] = results[:combined].map do |t|
-        contrib = {}.merge(t)
-        contrib[:tax_expense] = :owner_contrib
-        contrib[:description] = "Owner contrib: #{contrib[:description]}"
-        contrib[:amount] = parse_amount(contrib[:amount]) * -1
-        [contrib,t]
-      end.flatten
-      results
+      OwnerExpenseUtil.new.fixup_transactions(super(text))
     end
   end
 
