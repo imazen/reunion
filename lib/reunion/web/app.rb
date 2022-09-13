@@ -195,16 +195,49 @@ module Reunion
         STDERR << "Locating report " + slugs.join('/')  + "\n"
 
         simplified = (params["simple"] == "true")
+        begin 
+          r = org.generate_report(slugs, simplified_totals: simplified)
+        rescue e
+          if e.to_s.include?("Failed to find report")
+            $stderr << "Report missing... redirecting to parent report\n"
+            $stderr << e.to_s
+            redirect "/reports/#{slugs[0..-2] * '/'}"
+          else
+            raise
+          end 
+        end 
 
-        r = org.generate_report(slugs, simplified_totals: simplified)
 
+        field_set = (params["field_set"] || "default").to_sym
+
+        fields = case field_set
+          when :default 
+            [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
+          when :tax
+            [:tax_expense, :date, :amount,  :description, :currency]
+          when :exex
+            [:date, :amount,:currency, :description, :vendor, :vendor_tags, :subledger, :memo, :tax_expense, :description2, :account_sym, :id]
+        end 
+        
+        filename = case field_set
+          when :default
+            "#{slugs.join('_')}.csv"
+          when :tax
+            "Transactions-#{slugs.join('_')}.csv"
+          when :exex
+            "ExEx-expensecsv-#{slugs.join('_')}.csv"  
+        end 
+
+        
         if params["format"] == "csv"
           STDERR << "making csv...\n"
-          attachment "#{slugs.join('_')}.csv"
+          attachment filename
           content_type "text/csv"
-          ReportExporter.new.export_csv(report: r, schema: org.schema, 
-            txn_fields: [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
+          body = ReportExporter.new.export_csv(report: r, schema: org.schema, 
+            txn_fields: fields
           )
+          content_length body.bytesize
+          body
         else
           slim :report, {:layout => :layout, :locals => {:r => r, :basepath => '/reports/'}}
         end
