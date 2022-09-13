@@ -1,7 +1,7 @@
  module Reunion
    class FieldValueReport < Report
-    def initialize(slug, field, permutations: [nil])
-      super(slug)
+    def initialize(slug, field, permutations: [nil], omit_export: false)
+      super(slug, omit_export: omit_export)
       @include_nil = true
       @include_all = true
       @field = field
@@ -32,7 +32,7 @@
           reports << Report.new(slug, 
             filter: lambda, 
             subreports: subreports.dup, 
-            options: {omit_export: val == :all})
+            omit_export: skip_export || val == :all)
         end 
       end 
       reports

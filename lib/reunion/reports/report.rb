@@ -3,16 +3,22 @@ module Reunion
 
   class Report
     def initialize(slug, title: slug, filter: ->(t){true}, subreports: [], 
-      calculations: [], group_only: false, options: {}, inherit_filters: true)
+      calculations: [], group_only: false, options: {}, inherit_filters: true,
+      omit_export: false)
       @slug = slug
       @title = title || slug.to_s.tr('_',' ').tr('-',' ').capitalize
       @filter = filter
       @calculations = calculations + subreports.select{|r| r.is_a?(ReportValue)}
       @subreports = subreports.reject{|r| r.is_a?(ReportValue)}
       @report_options = options
+      @report_options[:omit_export] = true if omit_export
       @group_only = group_only
       @inherit_filters = inherit_filters
     end
+
+    def skip_export
+      @report_options[:omit_export]
+    end 
 
     attr_accessor :slug, :title, :filter, :subreports, :calculations, :inherit_filters, :group_only, :report_options
  

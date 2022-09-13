@@ -1,8 +1,8 @@
 module Reunion
   class ByYearReport < Report
 
-    def initialze(slug)
-      super(slug)
+    def initialze(slug, omit_export: false)
+      super(slug, omit_export: omit_export)
       @group_only = true
     end 
 
@@ -17,7 +17,7 @@ module Reunion
           subreports: subreports.dup,
           calculations: calculations.dup,
           group_only: subreports.count > 0,
-          options: {omit_export: val == :all_years})
+          omit_export: skip_export || val == :all_years)
       end 
 
     end 
@@ -26,8 +26,8 @@ module Reunion
 
   class QuarterlyReport < Report
 
-    def initialze(slug)
-      super(slug)
+    def initialze(slug, omit_export: false)
+      super(slug, omit_export: omit_export)
       @group_only = true
     end 
 
@@ -44,12 +44,14 @@ module Reunion
             filter: ->(t){t.date.month.between?(startmonth,endmonth)},
             subreports: subreports.dup,
             calculations: calculations.dup,
+            omit_export: skip_export,
             group_only: true)
         end
 
         Report.new(year.to_s.to_sym, 
           filter: ->(t){ t.date.year == year}, 
           subreports: s,
+          omit_export: skip_export,
           group_only: true)
       end
     end 
