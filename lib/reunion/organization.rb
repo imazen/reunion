@@ -253,16 +253,22 @@ module Reunion
     end
 
     def export_report_set!(
+      reports: nil,
       to_folder: nil, 
-      filenames_to_slug_array: {}, 
+      filenames_to_slug_array: nil, 
       txn_fields: [:date, :amount,  :description, :tax_expense, :currency])
       
       $stdout << "\nComputing accounts..\n"
       ensure_computed!
 
       to_folder = File.expand_path(to_folder || "./output/exports", @root_dir)
+
+      reports = reports || filenames_to_slug_array.map { |k,v| {filename: k, report_slugs: v}}
     
-      filenames_to_slug_array.each do |name, slug_array|
+      reports.each do |report|
+        name = report[:filename]
+        slug_array = report[:report_slugs]
+        
         target_file =  File.expand_path(name, to_folder)
         target_file = "#{target_file}.csv" unless target_file.end_with?('.csv')
 
@@ -274,7 +280,7 @@ module Reunion
           r = generate_report(slug_array)
           csv_contents = Reunion::ReportExporter.new.export_csv(report: r, 
               schema: schema, 
-              txn_fields: txn_fields)
+              txn_fields: report[:txn_fields] || txn_fields)
           $stdout << "\nWriting #{r.transactions&.length} transactions from #{slug_array * '/'} to #{target_file}\n"
           File.open(target_file, 'w') { |f| f.write(csv_contents) }
         rescue Exception => e
