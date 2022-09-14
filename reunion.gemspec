@@ -25,8 +25,11 @@ EOF
 
   s.add_dependency('tilt')
   s.add_dependency('nokogiri')
-  s.add_dependency('sinatra', '>= 1.3.3')
+  s.add_dependency('commonmarker')
+  s.add_dependency('slim')
+  s.add_dependency('sinatra', '>= 2.2.2')
   s.add_dependency('ofx', '>= 0.3.3')
+  s.add_dependency('better_errors')
   
   # Test libraries
   s.add_development_dependency('minitest')

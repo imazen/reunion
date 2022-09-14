@@ -1,0 +1,18 @@
+
+
+h3 Readme.md
+div.readme #{{readme_html}}
+
+
+h3 Configuration
+
+- if config_report
+  table.table.table-condensed.table-striped.table-hover
+    tr
+        th Name
+        th Value
+      
+    - config_report.each do |key, value|
+      tr
+        td #{key}
+        td #{value}

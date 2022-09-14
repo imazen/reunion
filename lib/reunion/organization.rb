@@ -3,7 +3,23 @@ module Reunion
   class Organization
 
     attr_reader :bank_accounts, :root_dir, :overrides_path, :schema, :syntax, :overrides_results, :truncate_before
-    attr_reader :all_transactions, :remove_processor_prefixes
+    attr_reader :all_transactions, :remove_processor_prefixes, :parsed_at, :computed_at
+
+
+    def self.precompute_for_web!(org_creator:, reparse: false, recompute: false)
+      $stderr << "Loading books...\n"
+      $stderr << "Reparsing...\n" if reparse
+      $stderr << "Recomputing...\n" if reparse || recompute
+      $org ||= Reunion::OrganizationCache.new(&org_creator)
+      $org.invalidate_parsing! if reparse
+      $org.invalidate_computations! if recompute && !reparse
+      $org.org_computed.ensure_computed! #Easier to have it start work while we're opening our browser
+      $stderr << "To speed up: export RUBY_GC_HEAP_INIT_SLOTS=#{(GC.stat[:heap_live_slots]*1.5).to_i}\n"
+      $stderr << "Books loaded\n"
+     
+      #$stderr << GC.stat
+    end 
+
 
 
     def web_app_title
@@ -50,8 +66,24 @@ module Reunion
 
       no_parser_files = all_input_files.select{|f| f.parser.nil? }
       log << "Failed to match the following files to parsers (they were therefore not added to their accounts either):\n" + no_parser_files.map{|f| f.path} * "\n" if no_parser_files.length > 0
-
     end
+
+    def readme_markdown
+      "Add a readme.md file - and this to your Org subclass:<br/>" + 
+      "<code>def readme_html\n  @@readme ||= File.read(File.expand_path('readme.md', File.dirname(__FILE__)))\nend"
+    end 
+
+    def config_report_hash
+      configure
+      {
+#TODO
+      }
+    end 
+
+    def inspect 
+      "<Reunion::Organization (truncated for your sanity)>"
+    end 
+
     def parse!
       Benchmark.bm(label_width = 55) do |benchmark|
         times = []
@@ -79,6 +111,7 @@ module Reunion
           @all_transactions = bank_accounts.map{|a| a.transactions}.flatten.stable_sort_by{|t| t.date_str}
           
         end
+        @parsed_at = Time.now
         [times.inject(Benchmark::Tms.new(), :+)]
       end
       #result =  "Executed parse and sort of transactions in #{time}"
@@ -173,6 +206,7 @@ module Reunion
         end
         benchmark.report("#{ @unmatched_transfers.length} unmatched transfers remain") {}
       end
+      @computed_at = Time.now
     end
 
     def profiling_result(name, result)
@@ -218,6 +252,41 @@ module Reunion
       STDERR << message
     end
 
-  
+    def export_report_set!(
+      to_folder: nil, 
+      filenames_to_slug_array: {}, 
+      txn_fields: [:date, :amount,  :description, :tax_expense, :currency])
+      
+      $stdout << "\nComputing accounts..\n"
+      ensure_computed!
+
+      to_folder = File.expand_path(to_folder || "./output/exports", @root_dir)
+    
+      filenames_to_slug_array.each do |name, slug_array|
+        target_file =  File.expand_path(name, to_folder)
+        target_file = "#{target_file}.csv" unless target_file.end_with?('.csv')
+
+        FileUtils.mkdir_p(File.dirname(target_file)) unless Dir.exist?(File.dirname(target_file))
+
+        $stdout << "\nGenerating data for #{slug_array * '/'}\n"
+
+        begin 
+          r = generate_report(slug_array)
+          csv_contents = Reunion::ReportExporter.new.export_csv(report: r, 
+              schema: schema, 
+              txn_fields: txn_fields)
+          $stdout << "\nWriting #{r.transactions&.length} transactions from #{slug_array * '/'} to #{target_file}\n"
+          File.open(target_file, 'w') { |f| f.write(csv_contents) }
+        rescue Exception => e
+          unless e.to_s.include?('Failed to find report')
+            raise
+          else
+            $stderr << "Failed to find report (no transactions): #{e}\n"
+          end 
+        end 
+      end 
+
+      $stdout << "\nExport complete\n"
+    end
   end
 end 

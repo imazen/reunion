@@ -25,8 +25,7 @@ html lang="en"
             span.icon-bar
             span.icon-bar
           
-          a class="navbar-brand" href="/"
-            = "Reunion"
+          a class="navbar-brand" href="/" Readme
 
 
 
@@ -45,19 +44,17 @@ html lang="en"
             li
               a href="/transfers/unmatched" 6. Transfers
             li
-              a href="/reports" 7. Subledgers
-            li
-              a href="/reports/tax" 8. Tax
+              a href="/reports" 7. Categorize
             li
               form action="/reparse" method="post"
                 button.navbar-btn.btn.btn-default type="submit" 
                   span.glyphicon.glyphicon-refresh
-                  |  Parse
+                  =  "Parsed #{parsed_ago}"
             li
               form action="/recompute" method="post"
                 button.navbar-btn.btn.btn-default type="submit" 
                   span.glyphicon.glyphicon-filter
-                  |  Compute
+                  =  "Computed #{computed_ago}"
             li
               form action="/export" method="post"
                 button.navbar-btn.btn.btn-default type="submit" 

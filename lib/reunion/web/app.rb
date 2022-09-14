@@ -1,6 +1,8 @@
 require "sinatra/base"
 require "slim"
 require "json"
+require "commonmarker"
+require "better_errors"
 
 module Rack
   class CommonLogger
@@ -11,17 +13,32 @@ module Rack
   end
 end
 
+BetterErrors.ignored_classes = ['Reunion::Transaction', 'Reunion::Statement']
+
 module Reunion
   module Web
     class App < ::Sinatra::Base
 
+      def initialize(org_creator:)
+        super
+        create_org = org_creator
+        
+      end
+
       set :dump_errors, true
 
-      set :show_exceptions, false
+      set :show_exceptions, true
 
+      disable :reload_templates
 
+      attr_accessor :create_org
 
-
+      configure :development do
+        use BetterErrors::Middleware
+        BetterErrors.application_root = __dir__
+        
+      end
+      
       def self.root_dir
         File.dirname(__FILE__)
       end 
@@ -37,26 +54,34 @@ module Reunion
       attr_accessor :org_cache
 
       helpers do
-        def get_date_from
-          @@date_from ||= Date.parse('2013-01-01')
-        end
-
-        def get_date_to
-          @@date_to ||= Date.parse('2014-01-01')
-        end
-
+        def org_cache
+          $org ||= Reunion::OrganizationCache.new(&create_org)
+        end 
         def org
           org_cache.org_computed
         end
 
+        def parsed_ago
+          Reunion::TimeAgo.ago_in_words(org_cache.org_computed.parsed_at)
+        end 
+        def computed_ago
+          Reunion::TimeAgo.ago_in_words(org_cache.org_computed.computed_at)
+        end 
       end 
+     
+  
+      def org_cache
+        $org ||= Reunion::OrganizationCache.new(&create_org)
+      end 
+
+      def org
+        org_cache.org_computed
+      end
 
       def filter_transactions(txns, drop_paired_transfers = true)
         txns.select do |t| 
           keep = true
           keep = false if t[:transfer_pair] && drop_paired_transfers
-          #keep =  false if get_date_from && t.date < get_date_from
-          #keep =  false if get_date_to && t.date > get_date_to
           keep
         end 
       end 
@@ -65,13 +90,6 @@ module Reunion
         org.transfer_pairs
       end
 
-      post '/set_date_from/:from' do |from|
-        @@date_from = from
-      end 
-
-      post '/set_date_to/:to' do |to|
-        @@date_to = to
-      end 
 
       post '/reparse' do
         org_cache.invalidate_parsing!
@@ -131,7 +149,14 @@ module Reunion
 
 
       get '/' do
-        redirect to('/import/sources')
+
+        readme_html = org.readme_markdown ? 
+            Tilt['markdown'].new(context: self) { org.readme_markdown }.render :
+            "No README.md file found"
+
+        config_report = org.config_report_hash || {}
+        slim :readme, {:layout => :layout, :locals => {:readme_html => readme_html,
+          :config_report => config_report }}
       end 
 
       get '/search' do
@@ -169,9 +194,6 @@ module Reunion
         slim :search, {:layout => :layout, :locals => {:results => results, :query => query}}
       end
 
-      set :dump_errors, true
-
-      set :show_exceptions, false
 
       get '/expense/:year/:query/?' do |year, query|
         list = org.all_transactions.map{|t| t[:tax_expense]}.uniq
@@ -200,7 +222,7 @@ module Reunion
         rescue Exception => e
           if e.to_s.include?("Failed to find report")
             $stderr << "Report missing... redirecting to parent report\n"
-            $stderr << e.to_s
+            #$stderr << e.to_s
             redirect "/reports/#{slugs[0..-2] * '/'}"
           else
             raise

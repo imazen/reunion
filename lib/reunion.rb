@@ -35,6 +35,7 @@ end
 module Reunion
 end
 
+require 'reunion/time_ago'
 require 'reunion/schema/schema'
 require 'reunion/parsers/parsers'
 require 'reunion/rules/condition_flattener'
