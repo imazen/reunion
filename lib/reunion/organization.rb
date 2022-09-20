@@ -84,6 +84,24 @@ module Reunion
       "<Reunion::Organization (truncated for your sanity)>"
     end 
 
+    def get_relevant_files
+      locate_input.map{ |f| f.path } + rule_set_descriptors.map{ |h| h[:path]} + @code_paths
+    end 
+
+    def input_files_hash
+      sha256 = Digest::SHA256.new
+      get_relevant_files.each do |path|
+        sha256 << File.read(path)
+      end 
+      sha256.hexdigest
+    end
+
+    def needs_reparse
+      return true unless @inputs_hash
+      @inputs_hash != input_files_hash
+    end  
+
+
     def parse!
       Benchmark.bm(label_width = 55) do |benchmark|
         times = []
@@ -114,6 +132,7 @@ module Reunion
         @parsed_at = Time.now
         [times.inject(Benchmark::Tms.new(), :+)]
       end
+      @inputs_hash = input_files_hash
       #result =  "Executed parse and sort of transactions in #{time}"
       #log << result
       #STDERR << result

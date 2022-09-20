@@ -13,8 +13,10 @@ module Reunion
     def org_parsed(deep_copy: true)
       load_parsed! unless @org_parsed_dump
       unless @org_parsed_dump
+        $stderr << "Reparsing books...\n"
         parsed = org_creator.call()
         parsed.ensure_parsed!
+        $stderr << "Caching books to disk...\n"
         @org_parsed_dump = Marshal.dump(parsed)
         @org_parsed = parsed
         File.open(parsed_cache_path, 'w'){|f| f.write(@org_parsed_dump)}
@@ -48,6 +50,7 @@ module Reunion
       invalidate_computations!
       @org_parsed = nil
       @org_parsed_dump = nil
+      $stderr << "Deleting #{parsed_cache_path}\n"
       File.delete(parsed_cache_path) if File.exist?(parsed_cache_path)
     end 
     
@@ -60,13 +63,19 @@ module Reunion
       if @org_parsed_dump
         #begin
           @org_parsed = Marshal.restore(@org_parsed_dump) 
-          @org_parsed.log << "Loaded from disk (parsed_data) at #{DateTime.now}"
+          msg = "Loaded cached books from disk (parsed_data.bin) at #{DateTime.now}\n"
+          @org_parsed.log << msg
+          $stderr << msg
         #rescue => e
         #  puts "Failed to restore dump from disk"
         #  puts e
         #  @org_parsed_dump = nil
         #end
       end
+      if @org_parsed&.needs_reparse
+        $stderr << "Parsed data out of date\n"
+        invalidate_parsing! 
+      end 
     end  
 
     def cache_folder
