@@ -111,6 +111,9 @@ module Reunion
       end 
 
       get '/import/sources' do
+        #files = org.all_input_files
+        #require 'pry'
+        #binding.pry
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 
       

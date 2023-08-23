@@ -118,7 +118,7 @@ module Reunion
           end
           
           
-          times <<benchmark.report("Writing #{a.permanent_id.to_s}.txt and .reconcile.txt") do
+          times << benchmark.report("Writing #{a.permanent_id.to_s}.txt and .reconcile.txt") do
             basepath = File.join(bank_accounts_output_dir, a.permanent_id.to_s)
             FileUtils.mkdir_p(bank_accounts_output_dir) unless Dir.exist?(bank_accounts_output_dir)
             File.open("#{basepath}.txt", 'w'){|f| f.write(a.normalized_transactions_report)}

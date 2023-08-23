@@ -13,7 +13,7 @@ module Reunion
 
     attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before, :truncate_after
 
-    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort, 
+    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort
 
 
     def add_parser_overlap_deletion(keep_parser: nil, discard_parser: nil)

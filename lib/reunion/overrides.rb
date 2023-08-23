@@ -154,7 +154,7 @@ module Reunion
       use_count = Hash[overrides.keys.map{|k| [k, 0]}]
       transactions.each do |t|
         result = by_txn(t)
-        prev_str = t.just_data.inspect
+        #prev_str = t.just_data.inspect
         if result
           result.changes.each_pair do |k,v|
             #$stderr << "Changing #{k.inspect} -> #{v.inspect}\n"

@@ -1,5 +1,5 @@
- module Reunion
-   class FieldValueReport < Report
+module Reunion
+  class FieldValueReport < Report
     def initialize(slug, field, permutations: [nil], omit_export: false)
       super(slug, omit_export: omit_export)
       @include_nil = true
