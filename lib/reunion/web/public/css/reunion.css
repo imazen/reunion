@@ -23,3 +23,9 @@ a{
     content: "";
   }
 }
+.report_list a{
+  display: inline !important;
+}
+.report_list li{
+  line-height: 3rem;
+}

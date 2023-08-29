@@ -1,6 +1,10 @@
 
-ul.nav.nav-pills.nav-stacked
+ul.nav.nav-pills.nav-stacked.report_list
   - reports.each do |r| 
     li
+      a href=(r[:last_year_path]) style="display:inline"
+        = (r[:last_year])
       a href=(r[:path])
         = r[:name]
+        
+      

@@ -211,7 +211,9 @@ module Reunion
       end
 
       get '/reports/?' do
-        list = org.reports.map{|r| {name: r.title, path: "/reports/#{r.slug}"}}
+        # last year based on now
+        last_year = Date.today.year - 1
+        list = org.reports.map{|r| {name: r.title, path: "/reports/#{r.slug}", last_year: last_year, last_year_path: "/reports/#{r.slug}/#{last_year}"}}
         slim :report_list,  {:layout => :layout, :locals => {:reports => list}}
       end 
 
@@ -253,6 +255,32 @@ module Reunion
             "ExEx-expensecsv-#{slugs.join('_')}.csv"  
         end 
 
+        sort_by = params["sort_by"]
+        sort_asc = params["sort_asc"] == "true"
+        sort_urls = {}
+
+      
+
+        r.schema.fields.keys.each do |f|
+          if sort_by && f.to_sym == sort_by.to_sym
+          
+            r.transactions.sort! do |a, b|
+              if a[f].nil?
+                1
+              elsif b[f].nil?
+                -1
+              else
+                a[f] <=> b[f]
+              end
+            end
+            r.transactions.reverse! if !sort_asc
+            sort_asc = !sort_asc
+            sort_urls[f] = "/reports/#{r.path}?sort_by=#{f}&sort_asc=#{sort_asc}"
+          else
+            sort_urls[f] = "/reports/#{r.path}?sort_by=#{f}&sort_asc=false"
+          end 
+        end
+
         
         if params["format"] == "csv"
           STDERR << "making csv...\n"
@@ -264,7 +292,7 @@ module Reunion
           content_length body.bytesize
           body
         else
-          slim :report, {:layout => :layout, :locals => {:r => r, :basepath => '/reports/'}}
+          slim :report, {:layout => :layout, :locals => {:r => r, sort_urls: sort_urls, :basepath => '/reports/'}}
         end
       end
 

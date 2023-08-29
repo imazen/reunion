@@ -38,7 +38,12 @@ a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv&field_set=tax"
     tr
       - r.schema.field_names_tagged(:reports).each do |name|
         - next if name == :description2
-        th #{name}
+        th
+          - if sort_urls[name]
+            a href=sort_urls[name]
+              = name
+          - else
+            = name
     - page = r.transactions #.take(100)
     - page.each do |row|
       tr id=row.lookup_key
