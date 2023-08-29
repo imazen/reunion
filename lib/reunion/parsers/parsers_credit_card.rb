@@ -61,7 +61,8 @@ module Reunion
             description: l[:description],
             amount: parse_amount(l[:amount]),
             txn_type: parse_txn_type(l[:type]),
-            chase_type: l[:type] ? l[:type].strip.downcase : nil }
+            chase_type: l[:type] ? l[:type].strip.downcase : nil,
+            card_member: l[:card_member] }
         }.reverse
       }
     end
@@ -78,7 +79,8 @@ module Reunion
         a.map { |l|
           {date:  Date.strptime(l[:date], '%m/%d/%Y %a'),
             description: l[:description],
-            amount: parse_amount(l[:amount]) * -1
+            amount: parse_amount(l[:amount]) * -1,
+            card_member: l[:holder_name]
           }
         }.reverse
       }
@@ -98,7 +100,8 @@ module Reunion
         a.map { |l|
             {date:  Date.strptime(l[:date], '%m/%d/%y'),
             description: l[:description],
-            amount: parse_amount(l[:amount]) * -1
+            amount: parse_amount(l[:amount]) * -1,
+            card_member: l[:card_member]
           }
         }.reverse
       }
@@ -120,7 +123,8 @@ module Reunion
         a.map { |l|
             {date:  Date.strptime(l[:date], '%m/%d/%Y'),
             description: l[:description],
-            amount: parse_amount(l[:amount]) * -1
+            amount: parse_amount(l[:amount]) * -1,
+            card_member: l[:card_member]
           }
         }.reverse
       }
