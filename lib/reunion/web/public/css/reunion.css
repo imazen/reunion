@@ -29,3 +29,8 @@ a{
 .report_list li{
   line-height: 3rem;
 }
+
+a.searchemail{
+  font-size:.8rem;
+  opacity: 65%;
+}

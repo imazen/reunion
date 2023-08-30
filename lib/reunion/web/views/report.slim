@@ -45,7 +45,7 @@ a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv&field_set=tax"
           - else
             = name
     - page = r.transactions #.take(100)
-    - page.each do |row|
+    - page.each_with_index do |row, i|
       tr id=row.lookup_key
         - r.schema.field_pairs_tagged(:reports).each do |k,v|
           - next if k == :description2
@@ -53,9 +53,18 @@ a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv&field_set=tax"
             - if v.readonly
               a href="/transaction/#{row.lookup_key}"
                 = v.format(row[k])
+              - if k == :description
+                - if transaction_metadata && transaction_metadata[i][:search_url]
+                  | &nbsp;
+                  a class="searchemail" href=transaction_metadata[i][:search_url] target="_blank"
+                    | 📧
+                a class="searchemail" href="https://www.google.com/search?q=#{row[k]}" target="_blank"
+                  | &nbsp;&nbsp;🌐
+                  /// or 🔍
               - if k == :description && row[:description2]
                 p style="max-width:20em;color:gray;"
                   = row[:description2]
+                
             - else
               .overrides_input_system.form-group
                 input.form-control type="text" value=v.format(row[k])   data-id=row.lookup_key data-key=k placeholder=k

@@ -281,6 +281,27 @@ module Reunion
           end 
         end
 
+
+        transaction_metadata = nil
+        if r.transactions
+          transaction_metadata = r.transactions.map do |txn|
+            if txn[:amount] && r.schema.fields[:amount] && txn[:date]
+              
+              #search within 2 weeks of charge
+              #Create a link from txn[:date] and txn[:amount] in the form https://mail.google.com/mail/u/0/#advanced-search/subset=all&has=%2210.00%22&within=2w&date=2023%2F08%2F30
+              # build the query as a hash then url encode
+              # trim - and $ from amount
+              amount_str = r.schema.fields[:amount].format(txn[:amount]).gsub(/[-$]/,'')
+              query = { subset: "all", has: "\"#{amount_str}\"", within: "2w", date: txn[:date].strftime("%Y/%m/%d") }
+              # url encode and & delimit query hash
+              query_str = URI.encode_www_form(query)
+              # build the url
+              { :search_url => "https://mail.google.com/mail/u/0/#advanced-search/#{query_str}" }
+            else {}
+            end 
+          end
+        end
+
         
         if params["format"] == "csv"
           STDERR << "making csv...\n"
@@ -292,7 +313,7 @@ module Reunion
           content_length body.bytesize
           body
         else
-          slim :report, {:layout => :layout, :locals => {:r => r, sort_urls: sort_urls, :basepath => '/reports/'}}
+          slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, :basepath => '/reports/'}}
         end
       end
 
@@ -337,6 +358,10 @@ module Reunion
           code: code, codehtml: codehtml, codecss:codecss, syntax: org.syntax}}
       end 
 
+      get '/repl/:query' do |query|
+        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema, query: query, syntax: org.syntax}}
+      end 
+
       get '/repl' do
         slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema, syntax: org.syntax}}
       end 
@@ -359,6 +384,7 @@ module Reunion
         #STDERR << "Found #{matches.count} results within #{org.all_transactions.count} for \n#{code}\n #{rs.rules.inspect}\n\n #{cleaned.inspect}"
         {results: cleaned}.to_json
       end
+
 
       get '/transaction/:id' do |id|
         results = org.all_transactions.select{|t| t.lookup_key == id}
