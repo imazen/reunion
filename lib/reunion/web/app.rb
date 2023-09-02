@@ -363,7 +363,7 @@ module Reunion
       end 
 
       get '/repl' do
-        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema, syntax: org.syntax}}
+        slim :'repl', {:layout => :layout, :locals => {:schema =>org.schema, query: "", syntax: org.syntax}}
       end 
 
       post '/repl' do
