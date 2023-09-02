@@ -86,6 +86,20 @@ Current Activity,,,,
 ,02-JAN, HOME DEPOT.COM 1-800-430-3376,$114.32, 
 ,02-JAN, PLUMBING,$0.00, 
 CSVEXAMPLE
+      @csv_text_2 = <<CSVEXAMPLE
+      Account Number,************2838,,,
+,,,,
+Current Activity,,,,
+,Transaction Date,Location/Description,Amount,,,,
+,JAN 15 2023,sale,$135.93,,,,
+,JAN 23 2023,return,$-147.80,,,,
+,JAN 23 2023,return,$-500.16,,,,
+,JAN 23 2023,return,$-68.16,,,,
+,JAN 24 2023,sale,$198.46,,,,
+,JAN 24 2023,sale,$219.83,,,,
+,JAN 26 2023,return,$-44.80,,,,
+,,,,,
+CSVEXAMPLE
       @schema = Schema.new({
           date: DateField.new(readonly:true, critical:true), 
           amount: AmountField.new(readonly:true, critical:true, default_value: 0),
@@ -111,6 +125,15 @@ CSVEXAMPLE
       end
     end
 
+    it 'should produce valid date, description, and amounts for current activity exports' do
+      parsed = @parser.parse_and_normalize(@csv_text_2, @schema)
+      
+      parsed[:transactions].each do |t|
+          assert t[:date].is_a?(Date)
+          assert t[:description].is_a?(String)
+          assert t[:amount].is_a?(BigDecimal)
+      end
+    end
     it 'should produce valid statements' do
       parsed = @parser.parse_and_normalize(@csv_text, @schema)
       # expect equals 01/13/2023 and $2015.13

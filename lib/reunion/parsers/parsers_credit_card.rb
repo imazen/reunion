@@ -205,15 +205,17 @@ module Reunion
         end
       end
 
-      # Parse "Closing Date" and "New Balance" from metadata_pairs
-      closing_date = Date.strptime(metadata_pairs[:closing_date], '%m/%d/%Y')
-      new_balance = parse_amount(metadata_pairs[:new_balance])
 
+      # Parse "Closing Date" and "New Balance" from metadata_pairs
+      closing_date = metadata_pairs[:closing_date].nil? ? nil : Date.strptime(metadata_pairs[:closing_date], '%m/%d/%Y')
+      new_balance = metadata_pairs[:new_balance].nil? ? nil : parse_amount(metadata_pairs[:new_balance])
+
+      # Some current activity files don't have the metadat
       #Raise error if Finance Charges and Late Fees don't parse to 0
-      if parse_amount(metadata_pairs[:finance_charges]) != 0
+      if metadata_pairs.keys.include?(:finance_charges) && parse_amount(metadata_pairs[:finance_charges]) != 0
         raise "Finance Charges not 0, add feature if there is no txn to represent this balance change"
       end
-      if parse_amount(metadata_pairs[:late_fees]) != 0
+      if metadata_pairs.keys.include?(:new_balate_feeslance) && parse_amount(metadata_pairs[:late_fees]) != 0
         raise "Late Fees not 0, add feature if there is no txn to represent this balance change"
       end
 
@@ -232,9 +234,22 @@ module Reunion
       #Concatenate the date (format ''20-DEC'' with the year from the closing_date, then parse. If the date is after the closing date, subtract a year
       { transactions: transactions.map do |t|
 
-          date = Date.strptime("#{t[:transaction_date]} #{closing_date.year}", '%d-%b %Y')
-          if date > closing_date
-            date = date.prev_year
+          if t[:transaction_date].nil?
+            next # skip blank lines
+          end
+
+          # HD can use either "JAN 15 2023" or "02-JAN" format. In the latter, we use the closing date year
+          date_str = t[:transaction_date]
+          if /([0-9]{2})-([A-Z]{3})/ =~ date_str
+            if closing_date.nil? 
+              raise "Missing closing date on statement, cannot infer year for '#{date_str}'"
+            end
+            date = Date.strptime("#{t[:transaction_date]} #{closing_date.year}", '%d-%b %Y')
+            if date > closing_date
+              date = date.prev_year
+            end
+          else #JAN 15 2023
+            date = Date.strptime(t[:transaction_date], '%b %d %Y')
           end
           # Add invoice number to description
           desc = t[:location_description]
@@ -247,8 +262,8 @@ module Reunion
             amount: parse_amount(t[:amount]) * -1,
             invoice_number: t[:invoice_number]
           }
-        end,
-        statements: [{
+        end.compact,
+        statements: (closing_date.nil? || new_balance.nil?) ? [] : [{
           date: closing_date,
           balance: new_balance
         }]
