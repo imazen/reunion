@@ -20,9 +20,10 @@ input type="text" id="query" value=(defined?(query) ? query : "")
 - if defined?(results) && results
   table.table.table-condensed
     - results.each do |r|
-      tr
+      tr id=r.lookup_key
         td
-          = r.date_str
+          a href="/transaction/#{r.lookup_key}"
+            = r.lookup_key
         td
           = r.amount_str
         td
