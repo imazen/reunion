@@ -7,8 +7,9 @@ table.table.table-condensed
     th Input files
     th Input txn count
     th Final Txn count
+    th Gaps>2wks
     th Discrepancy
-    th Starting balance
+    th Starting balance estimate
     th Last transaction
     th Last statement
     th Ending balance
@@ -26,9 +27,12 @@ table.table.table-condensed
         = b.transactions.count
       td
         a href="/bank/#{b.permanent_id}/reconcile"
+          = b.gaps.count
+      td
+        a href="/bank/#{b.permanent_id}/reconcile"
           = "%.2f" % b.final_discrepancy
       td
-        - if b.starting_balance && b.starting_balance_date
+        - if !b.starting_balance.nil? && !b.starting_balance_date.nil?
           a href="/bank/#{b.permanent_id}/reconcile"
             = "%.2f" % b.starting_balance + " on " + b.starting_balance_date.strftime("%Y-%m-%d")
       td 

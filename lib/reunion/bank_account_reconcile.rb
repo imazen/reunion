@@ -1,6 +1,6 @@
 class Reunion::BankAccount
   attr_accessor :reconciliation_report 
-  attr_accessor :starting_balance, :starting_balance_date, :last_transaction_date, :last_balance_date, :ending_balance
+  attr_accessor :starting_balance, :starting_balance_date, :last_transaction_date, :last_balance_date, :ending_balance, :gaps
 
 
   def sort_to_reduce_discrepancies(startbal, combined)
@@ -81,8 +81,15 @@ class Reunion::BankAccount
 
     last_txn_date = nil
 
+    last_row = nil
+    gap_data = []
 
     combined.each_with_index do | row, index |
+      # collect data for gaps, subtracting Date objects. Got TypeError - can't convert Date into an exact number:
+      gap_data << {date: row[:date], gap_days: row[:date].to_date - last_row[:date].to_date, prev_date: last_row[:date]} if last_row && last_row[:date].respond_to?(:to_date) && row[:date].respond_to?(:to_date)
+
+      last_row = row
+
       result_row = {}
       result_row[:id] = row[:id] if row[:id]
       result_row[:key] = row.lookup_key if row.respond_to? :lookup_key
@@ -153,6 +160,9 @@ class Reunion::BankAccount
       last_txn_date = row[:date] if row_amount != 0
 
     end
+
+    # Any gaps over 14 days
+    @gaps = gap_data.select{|g| g[:gap_days] > 14}.map{|g| {to: g[:date], days: g[:gap_days], from: g[:prev_date], string: "#{g[:gap_days].to_i} days (#{g[:prev_date].strftime("%b %-d %Y")} to #{g[:date].strftime("%b %-d %Y")})"}}
 
     @final_discrepancy = report.compact.map { |r| r[:discrepancy]}.compact.inject(0, :+) - (start_bal || 0)
     @starting_balance = start_bal

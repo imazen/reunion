@@ -3,8 +3,8 @@
 h3 #{bank.name} &mdash; #{bank.currency}
 
 ul
-  - if bank.starting_balance && bank.starting_balance_date
-    li Starting balance on #{bank.starting_balance_date.strftime("%Y-%m-%d")}: #{"%.2f" % bank.starting_balance}
+  - if !bank.starting_balance.nil? && !bank.starting_balance_date.nil?
+    li Est. starting bal on #{bank.starting_balance_date.strftime("%Y-%m-%d")}: #{"%.2f" % bank.starting_balance}
   li Final discrepancy: #{ "%.2f" % bank.final_discrepancy }
   li Input files: #{bank.input_files.count}
   li Input transactions: #{bank.input_files.map{|f|f.transactions}.flatten.count}
@@ -12,6 +12,7 @@ ul
   li Last transaction: #{bank.last_transaction_date}
   li Ending balance: #{"%.2f" % bank.ending_balance}
   li Last statement/reconciliation date: #{bank.last_balance_date ? bank.last_balance_date.strftime("%Y-%m-%d") : "None"}
+  li Gaps: #{bank.gaps.map{|g| g[:string]}.join(', ')}
   li 
     a onclick="javascript: $('.reconciliationreport tr.default').toggle();"
       | Hide/show regular transactions
