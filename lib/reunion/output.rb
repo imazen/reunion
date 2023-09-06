@@ -73,7 +73,7 @@ class Reunion::Export
           value = format.call(value) if value && format && format.respond_to?(:call)
         end 
         value ||= ""
-        value = value.to_s.gsub(/\t\r\n/,"") 
+        value = value.to_s.gsub(/[\t\r\n]/,"") 
         row << value
         #check length
         widths[i] = [widths[i] || 0, value.length].max
