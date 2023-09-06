@@ -234,7 +234,10 @@ module Reunion
           end 
         end 
 
-
+        current_base_url = "/reports/#{r.path}"
+        #filter out 'captures' key
+        current_url_params = params.dup.reject{|k,v| k == "captures"}
+   
         field_set = (params["field_set"] || "default").to_sym
 
         fields = case field_set
@@ -259,7 +262,13 @@ module Reunion
         sort_asc = params["sort_asc"] == "true"
         sort_urls = {}
 
-      
+        search_description = params["search_desc"]
+
+        original_count = r.transactions.nil? ? 0 : r.transactions.count
+
+        if !search_description.nil? && !search_description.empty? && r.transactions
+          r.transactions = r.transactions.select{|t| t.description.downcase.include?(search_description.downcase)}
+        end
 
         r.schema.fields.keys.each do |f|
           if sort_by && f.to_sym == sort_by.to_sym
@@ -275,16 +284,20 @@ module Reunion
             end
             r.transactions.reverse! if !sort_asc
             sort_asc = !sort_asc
-            sort_urls[f] = "/reports/#{r.path}?sort_by=#{f}&sort_asc=#{sort_asc}"
+
+            # deep copy params, set sort_asc and sort_by and encode and append to current_base_url
+            new_params = params.dup.merge({sort_by: f, sort_asc: sort_asc})
           else
-            sort_urls[f] = "/reports/#{r.path}?sort_by=#{f}&sort_asc=false"
+            new_params = params.dup.merge({sort_by: f, sort_asc: false})
           end 
+          sort_urls[f] = "#{current_base_url}?#{URI.encode_www_form(new_params)}"
         end
 
 
         transaction_metadata = nil
         if r.transactions
           transaction_metadata = r.transactions.map do |txn|
+            metadata = {}
             if txn[:amount] && r.schema.fields[:amount] && txn[:date]
               
               #search within 2 weeks of charge
@@ -296,10 +309,32 @@ module Reunion
               # url encode and & delimit query hash
               query_str = URI.encode_www_form(query)
               # build the url
-              { :search_url => "https://mail.google.com/mail/u/0/#advanced-search/#{query_str}" }
-            else {}
+              metadata[:search_url] = "https://mail.google.com/mail/u/0/#advanced-search/#{query_str}" 
             end 
+            # search by the first word of the description, 
+            if txn[:description]
+              first_word = txn[:description].split(' ').first
+              new_params = params.dup.merge({search_desc: first_word})
+              metadata[:filter_url] =  "#{current_base_url}?#{URI.encode_www_form(new_params)}" 
+            end
+            metadata
           end
+        end
+
+        # describe current_url_params and offer a link to the base url
+        current_filter_explanation = if current_url_params.empty?
+          nil
+        else
+          string = ""
+          unless search_description.nil? || search_description.empty? || r.transactions.nil?
+            net_amount = r.transactions.map{|t| t.amount}.sum
+
+            string += "(description contains '#{search_description}' - showing #{r.transactions.count} of #{original_count}. Net amount: #{r.schema.fields[:amount].format(net_amount)} "  
+          end
+          if sort_by
+            string += "sorting #{sort_asc ? 'ascending' : 'descending'} by #{sort_by}."
+          end 
+          string + ")"
         end
 
         
@@ -313,7 +348,7 @@ module Reunion
           content_length body.bytesize
           body
         else
-          slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, :basepath => '/reports/'}}
+          slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, :basepath => '/reports/', unfiltered_url: current_base_url, current_filter_explanation: current_filter_explanation}}
         end
       end
 
