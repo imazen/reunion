@@ -3,6 +3,7 @@
 module Reunion
   module Metadata
 
+    # The shipments and items parsers rely on the CSV exports that no longer exist.
     class AmazonParserBase
       def parse_amount(text)
         return 0 if text.nil? || text.empty?
@@ -166,6 +167,30 @@ module Reunion
 
         order_level_txns + box_level_txns
       end
+    end
+  end
+
+  # For the request-my-data format
+  class RetailOrderHistory
+
+    # Shipment Item Subtotal (decimal)
+    # Shipment Item Subtotal Tax  (decimal)
+    # Payment Instrument Type (' and ' delimited strings, e.g. "Visa - 1234 and Gift Certificate" etc)
+    # Product Name (string)
+    # Order ID  (string)
+    # Order Date  (YYYY-MM-DDThh:mm:ss+00:00Z format)
+
+    # Ship Date (YYYY-MM-DDThh:mm:ss+00:00Z format)
+
+
+    def initialize(items, shipments, schema)
+      @items = items
+      @shipments = shipments
+      @schema = schema
+    end
+
+    def aggregate
+      AmazonAggregator.new.aggregate(@items, @shipments, @schema)
     end
   end
 end
