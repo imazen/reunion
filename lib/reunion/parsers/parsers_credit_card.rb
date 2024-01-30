@@ -208,7 +208,7 @@ module Reunion
 
       # Parse "Closing Date" and "New Balance" from metadata_pairs
       closing_date = metadata_pairs[:closing_date].nil? ? nil : Date.strptime(metadata_pairs[:closing_date], '%m/%d/%Y')
-      new_balance = metadata_pairs[:new_balance].nil? ? nil : parse_amount(metadata_pairs[:new_balance])
+      new_balance = metadata_pairs[:new_balance].nil? ? nil : parse_amount(metadata_pairs[:new_balance]) * -1
 
       # Some current activity files don't have the metadat
       #Raise error if Finance Charges and Late Fees don't parse to 0
@@ -252,7 +252,7 @@ module Reunion
             date = Date.strptime(t[:transaction_date], '%b %d %Y')
           end
           # Add invoice number to description
-          desc = t[:location_description]
+          desc = t[:locationdescription]
           if t[:invoice_number]
             desc = "#{desc} Invoice #{t[:invoice_number]}"
           end
