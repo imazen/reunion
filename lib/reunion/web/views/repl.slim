@@ -38,6 +38,8 @@ javascript:
 
         if (data.errors){
           errorsDiv.append(data.errors);
+        }else{
+          errorsDiv.append("Success: Found " + data.results.length)
         }
         if (data.results){
           $.each(data.results, function(ix, row){
