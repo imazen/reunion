@@ -1,5 +1,5 @@
 source 'http://rubygems.org'
-ruby "3.1.2"
+ruby file: ".tool-versions"
 
 gem "ofx", :git => "https://github.com/annacruz/ofx", :ref => "d12805f"
 gem "byebug", :group => :development
