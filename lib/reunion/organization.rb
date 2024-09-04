@@ -97,9 +97,13 @@ module Reunion
     end
 
     def needs_reparse
-      return true unless @inputs_hash
-      @inputs_hash != input_files_hash
+      return "no @inputs_hash" unless @inputs_hash
+      @inputs_hash != input_files_hash ? "hash mismatch" : nil
     end  
+
+    def txn_count
+      all_transactions.length
+    end
 
 
     def parse!

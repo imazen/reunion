@@ -345,7 +345,7 @@ module Reunion
           body = ReportExporter.new.export_csv(report: r, schema: org.schema, 
             txn_fields: fields
           )
-          content_length body.bytesize
+          # content_length body.bytesize
           body
         else
           slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, :basepath => '/reports/', unfiltered_url: current_base_url, current_filter_explanation: current_filter_explanation}}

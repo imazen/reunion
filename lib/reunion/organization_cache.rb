@@ -16,7 +16,7 @@ module Reunion
         $stderr << "Reparsing books...\n"
         parsed = org_creator.call()
         parsed.ensure_parsed!
-        $stderr << "Caching books to disk...\n"
+        $stderr << "Caching books to disk (#{parsed.txn_count} transactions)\n"
         @org_parsed_dump = Marshal.dump(parsed)
         @org_parsed = parsed
         File.open(parsed_cache_path, 'w'){|f| f.write(@org_parsed_dump)}
@@ -63,7 +63,7 @@ module Reunion
       if @org_parsed_dump
         #begin
           @org_parsed = Marshal.restore(@org_parsed_dump) 
-          msg = "Loaded cached books from disk (parsed_data.bin) at #{DateTime.now}\n"
+          msg = "Loaded cached books (#{@org_parsed.txn_count} transactions) from disk (parsed_data.bin)\n"
           @org_parsed.log << msg
           $stderr << msg
         #rescue => e
@@ -72,8 +72,8 @@ module Reunion
         #  @org_parsed_dump = nil
         #end
       end
-      if @org_parsed&.needs_reparse
-        $stderr << "Parsed data out of date\n"
+      if why = @org_parsed&.needs_reparse
+        $stderr << "Parsed data out of date: #{why}\n"
         invalidate_parsing! 
       end 
     end  
