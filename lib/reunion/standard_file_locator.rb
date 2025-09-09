@@ -16,19 +16,20 @@ module Reunion
       end.flatten.uniq.select { |p| File.basename(p).split('-').length > 2 && (p =~ /\.normal\.txt\Z/i).nil? }
     end
 
-    def generate_file_objects
+    def generate_file_objects(existing_files)
       generate_input_filenames.map do |path|
         f = InputFile.new
         f.full_path = path
         f.path = File.expand_path(path).gsub(File.expand_path(working_dir), "").gsub(/\A\/+/,"")
         f.account_tag = File.basename(path).split('-')[0].downcase.to_sym
         f.parser_tag = File.basename(path).split('-')[1].downcase.to_sym 
+        f.try_load_cached(existing_files)
         f
       end
     end
 
-    def generate_and_assign(parser_table, accounts_table)
-      generate_file_objects.map do |f|
+    def generate_and_assign(parser_table, accounts_table, existing_files)
+      generate_file_objects(existing_files).map do |f|
         f.parser = parser_table[f.parser_tag]
         matching_accounts = [accounts_table[f.account_tag]].flatten
         copies = matching_accounts.map do |a|

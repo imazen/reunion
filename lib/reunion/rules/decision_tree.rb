@@ -30,7 +30,7 @@ module Reunion
     end
     class Not
       def inspect
-        "AND(" + condition.inspect + ")"
+        "NOT(" + condition.inspect + ")"
       end
     end
 

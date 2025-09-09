@@ -19,7 +19,7 @@ module Reunion
         $stderr << "Caching books to disk (#{parsed.txn_count} transactions)\n"
         @org_parsed_dump = Marshal.dump(parsed)
         @org_parsed = parsed
-        File.open(parsed_cache_path, 'w'){|f| f.write(@org_parsed_dump)}
+        File.open(parsed_cache_path, 'wb'){|f| f.write(@org_parsed_dump)}
       end 
       deep_copy ? Marshal.restore(@org_parsed_dump) : @org_parsed
     end  
@@ -59,7 +59,7 @@ module Reunion
     end
 
     def load_parsed!
-      @org_parsed_dump = File.read(parsed_cache_path) if File.exist?(parsed_cache_path)
+      @org_parsed_dump = File.binread(parsed_cache_path) if File.exist?(parsed_cache_path)
       if @org_parsed_dump
         #begin
           @org_parsed = Marshal.restore(@org_parsed_dump) 

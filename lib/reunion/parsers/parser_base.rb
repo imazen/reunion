@@ -41,6 +41,14 @@ module Reunion
         transactions.reverse!
       end
 
+      # Assign index_in_source to transactions
+      transactions.each_with_index do |t, i|
+        t[:index_in_source] = i
+      end
+      #Assign index_in_source to statements
+      statements.each_with_index do |s, i|
+        s[:index_in_source] = i
+      end
       #Map hashes to transactions
       results[:transactions] = transactions.map do |t| 
         Transaction.new(schema:schema, from_hash: t)

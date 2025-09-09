@@ -111,14 +111,11 @@ module Reunion
       end 
 
       get '/import/sources' do
-        #files = org.all_input_files
-        #require 'pry'
-        #binding.pry
         slim :'import/sources', {layout: :layout, :locals => {:files => org.all_input_files}}
       end 
       
       get '/import/sources/:digest' do |digest|
-        slim :'import/details', {layout: :layout, :locals => {:file => org.all_input_files.detect{|f| f.path_account_digest == digest}}}
+        slim :'import/details', {layout: :layout, :locals => {:all_txns => org.all_transactions,:file => org.all_input_files.detect{|f| f.path_account_digest == digest}}}
       end 
 
       get '/import/validate' do

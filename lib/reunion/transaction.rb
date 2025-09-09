@@ -73,7 +73,6 @@ module Reunion
       [id, date_str, amount_str, description] * "    "
     end 
 
-
     def lookup_key_basis 
       raise "Transaction without subindex! Run subindex_all on ALL transactions" if data[:subindex].nil?
       [account_sym,date_str,amount_str,description.strip.squeeze(" ").downcase,data[:subindex].to_s] * "|"
@@ -84,6 +83,7 @@ module Reunion
       @lookup_key ||= Digest::SHA1.hexdigest(lookup_key_basis)
     end 
 
+  
 
   end
 end

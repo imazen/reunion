@@ -28,26 +28,64 @@
 - if file.transactions
   ruby: 
     invalid = file.invalid_transactions.map{|t| {invalid: true}.merge(t)}
+    path_sym = file.path.to_sym
+    updated_txns = all_txns.select{|t| t[:source] == path_sym}
+    
     txns = file.transactions.map{|t| {key: t[:subindex] ? t.lookup_key : nil}.merge(t.data)}
     stmnts = file.statements.map{|t| {}.merge(t.data)}
+    rows = [invalid,txns, stmnts].flatten
+    cols = rows.map{|h|h.keys}.flatten.uniq.compact - [:key, :account_sym, :subindex, :priority, :source, :schema, :temp_index, :transfer_pair]
+    rows.each do |r|
+      updated = updated_txns.find{|t2| t2.data[:index_in_source] == r[:index_in_source]};
+      r[:updated] = updated&.data
+      r[:discard] = r[:discard]
+      r[:href] = "/transaction/#{updated.lookup_key}" if updated
+      cols.each do |c|
+        if [:amount, :balance, :balance_after].include?(c) && r[c]
+          r[c] = "%.2f" % r[c]
+        elsif r[:updated] && r[:updated][c] != r[c]
+          r[c] = "#{r[c]} => #{r[:updated][c]}"
+          r[:changed] = true
+        end
+      end
+    end 
 
-  - @rows = [invalid,txns, stmnts].flatten
-  - @cols = @rows.map{|h|h.keys}.flatten.uniq.compact - [:key, :account_sym, :priority, :source, :schema, :subindex]
+  - @rows = rows
+  - @cols = cols
 
-  h3 Displaying 
+  h3 Displaying
   p
     | Path: 
     = file.path
   p 
     | Account: 
     = file.account.name
+  h4 
+    span.bg-success 
+      | Changed
+    | &nbsp;
+    span.bg-warning 
+      | Discarded
+    | &nbsp;
+    span.bg-danger 
+      | Invalid
   table.table.table-condensed
     tr
       - @cols.each do |c|
         th
           = c
     - @rows.each do |r|
-      tr class=(r[:invalid] ? "danger" : r[:discard] ? "warning" : "success")
+      tr class=(r[:invalid] ? "danger" : r[:discard] || !r[:updated] ? "warning" : r[:changed] ? "success" : "")
         - @cols.each do |c|
-          td
-            = ([:amount, :balance, :balance_after].include?(c) && r[c]) ? "%.2f" % r[c] : r[c]
+          - if r[c].is_a?(String) && r[c].include?("=>")
+            td class="success"
+              span
+                = r[c]
+          - else
+            - if r[:href]
+              td class="field_#{c}"
+                a href=r[:href]
+                  = r[c]
+            - else
+              td class="field_#{c}"
+                = r[c]

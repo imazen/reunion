@@ -1,15 +1,20 @@
-
 - @files = files.sort_by{|f| f.last_txn_date || Date.today}.stable_sort_by{|f| (f.account.nil? || f.account.name.nil?) ? "None" : f.account.name}
+- @files.each do |f|
+  - path_sym = f.path.to_sym
+  - f.txns_used ||= org.all_transactions.select{|t| t[:source] == path_sym && t[:discard].nil?}.count
+  - f.txns_ignored ||= (f.total_count || 0) - f.txns_used
 - @is_invalid = ->(f){f.account.nil? || f.parser.nil? || f.invalid_transactions.nil? || !f.invalid_transactions.empty?}
-- @is_warning = ->(f){f.transactions.nil? || f.transactions.any?{|t|t[:discard]}}
+- @is_warning = ->(f){ f.txns_ignored > 0 }
 - @files = @files.stable_sort_by{|f| @is_invalid.call(f) ? 1 : @is_warning.call(f) ? 2 : 3}
 table.table.table-condensed
   tr
     th Path
     th Parser
     th Account
-    th Txns used
-    th Invalid txns
+    th Txns 
+    th Used
+    th Ignored
+    th Invalid
     th Statements
 
   - @files.each do |f|
@@ -21,11 +26,14 @@ table.table.table-condensed
         = f.parser.nil? ? "No parser found" : f.parser.name.gsub("Reunion::", "")
       td
         = f.account.nil? ? "No account found" : f.account.name + " - " + f.account.currency.to_s
-      - unless f.parser.nil? || f.account.nil? || f.transactions.nil? 
+      - unless f.parser.nil? || f.account.nil?   
+        td  
+          = f.total_count
         td
-          = f.transactions.select{|t|t[:discard].nil?}.count.to_s + "/" + f.transactions.count.to_s
+          = f.txns_used 
         td
-          = f.invalid_transactions.count
+          = f.txns_ignored
         td
-          = f.statements.count
-
+          = f.invalid_count
+        td
+          = f.statement_count
