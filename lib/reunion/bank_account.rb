@@ -143,7 +143,7 @@ module Reunion
 
     def normalized_transactions_report
       sorted = sort_transactions_and_statements(transactions + statements)
-      Export.new.input_file_to_tsv(sorted, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority])
+      Export.new.input_file_to_tsv(sorted, drop_columns:[:account_sym, :currency, :subindex, :schema, :priority, :index_in_source])
     end
 
   end

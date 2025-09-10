@@ -69,6 +69,21 @@ module Reunion
       results
     end
   end
+  class ManualAccountActivityCsvParser < CsvParser
+    
+    def parse(text)
+      results = super(text)
+      results[:combined] = results[:combined].map do |t|
+        row = {}.merge(t)
+        row[:balance] = !row[:balance].nil? && !row[:balance].strip.empty? ? parse_amount(row[:balance]) : nil
+        row[:amount] = !row[:amount].nil? && !row[:amount].strip.empty? ? parse_amount(row[:amount]) : nil
+        row[:date] = Date.parse(row[:date])
+        raise "Missing both Amount and Balance columns #{row.inspect}" if !row.has_key?(:amount) && !row.has_key?(:balance)
+        row
+      end
+      results
+    end
+  end
 
   class OwnerExpenseUtil < CsvParser
     def fixup_transactions(results)
