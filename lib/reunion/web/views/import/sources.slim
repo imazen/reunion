@@ -3,7 +3,7 @@
   - path_sym = f.path.to_sym
   - f.txns_used ||= org.all_transactions.select{|t| t[:source] == path_sym && t[:discard].nil?}.count
   - f.txns_ignored ||= (f.total_count || 0) - f.txns_used
-- @is_invalid = ->(f){f.account.nil? || f.parser.nil? || f.invalid_transactions.nil? || !f.invalid_transactions.empty?}
+- @is_invalid = ->(f){f.account.nil? || f.parser.nil? || f.invalid_transactions.nil? || !f.invalid_transactions.empty? }
 - @is_warning = ->(f){ f.txns_ignored > 0 }
 - @files = @files.stable_sort_by{|f| @is_invalid.call(f) ? 1 : @is_warning.call(f) ? 2 : 3}
 table.table.table-condensed
@@ -18,8 +18,8 @@ table.table.table-condensed
     th Statements
 
   - @files.each do |f|
-    tr class=(@is_invalid.call(f) ? "danger" : @is_warning.call(f) ? "warning" : "valid")
-      td 
+    tr
+      td class=(@is_invalid.call(f) ? "danger" : @is_warning.call(f) ? "warning" : "valid")
         a href=("/import/sources/" + f.path_account_digest)
           = f.path
       td
@@ -29,11 +29,23 @@ table.table.table-condensed
       - unless f.parser.nil? || f.account.nil?   
         td  
           = f.total_count
-        td
-          = f.txns_used 
-        td
-          = f.txns_ignored
-        td
-          = f.invalid_count
+        - if f.total_count > 0 && f.txns_used == 0
+          td.bg-danger
+            = f.txns_used 
+        - else
+          td
+            = f.txns_used 
+        - if f.txns_ignored > 0
+          td.bg-warning
+            = f.txns_ignored
+        - else
+          td
+            = f.txns_ignored
+        - if f.invalid_count > 0
+          td.bg-danger
+            = f.invalid_count
+        - else
+          td
+            = f.invalid_count
         td
           = f.statement_count

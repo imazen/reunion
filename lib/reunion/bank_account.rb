@@ -42,7 +42,7 @@ module Reunion
       end.flatten
     end
 
-    def load_and_merge(schema: , remove_processor_prefixes: nil, transaction_modifier: nil)
+    def load_and_merge(schema: , remove_processor_prefixes: nil, remove_processor_prefixes_after: nil, transaction_modifier: nil)
       @schema = schema || @schema
 
 
@@ -52,15 +52,25 @@ module Reunion
       @input_files.map do |af|
         af.load(schema)
         af.transactions.each do |txn|
+
+          remove_prefixes = !remove_processor_prefixes.nil?
+          if remove_processor_prefixes_after && (txn.date < remove_processor_prefixes_after || txn.date.nil?)
+            remove_prefixes = false
+          end 
           # Filter out processor prefixes
-          unless remove_processor_prefixes.nil?
+          if remove_prefixes
             desc = txn[:description]
             prefixes_to_check = desc.include?('*') ? remove_processor_prefixes : slow_prefixes
             prefixes_to_check.each do |prefix|
-              desc.delete_prefix!(prefix)
+              if desc.start_with?(prefix)
+                txn[:prefix] = prefix
+                desc = desc.delete_prefix(prefix).lstrip
+              end
             end
-            desc.lstrip!
-            txn[:description] = desc
+            if desc != txn[:description]
+              txn[:original_description] = txn[:description]
+              txn[:description] = desc
+            end 
           end
           
           #Set default currency
