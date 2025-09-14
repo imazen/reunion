@@ -121,6 +121,7 @@ module Reunion
       overrides[txn.lookup_key]
     end 
 
+
     def set_override(txn,changes)
       old = by_txn(txn)
       ov = Override.new(txn,changes)
@@ -150,7 +151,7 @@ module Reunion
       end
     end 
 
-    def apply_all(transactions)
+    def apply_all(transactions, ignore_unused_before_date: nil, ignore_unused_after_date: nil)
       use_count = Hash[overrides.keys.map{|k| [k, 0]}]
       transactions.each do |t|
         result = by_txn(t)
@@ -178,7 +179,18 @@ module Reunion
         STDERR << "Override used #{c} times: #{overrides[k].lookup_key_basis}\n"
       end
 
-      {unused_overrides: use_count.to_a.select{|k,c| c < 1}.map{|k,c| overrides[k]}}
+      unused = use_count.to_a.select{|k,c| c < 1}.map{|k,c| overrides[k]}
+
+      if !ignore_unused_before_date.nil?
+        date_str = ignore_unused_before_date.strftime("%Y-%m-%d")
+        unused.select!{|ov| ignore_unused_before_date.nil? || ov.date_str >= date_str}
+      end
+      if !ignore_unused_after_date.nil?
+        date_str = ignore_unused_after_date.strftime("%Y-%m-%d")
+        unused.select!{|ov| ignore_unused_after_date.nil? || ov.date_str <= date_str}
+      end
+
+      {unused_overrides: unused}
     end
 
   end

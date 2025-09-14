@@ -199,7 +199,7 @@ module Reunion
         benchmark.report("#{all_transactions.length} transactions (#{computable_transactions&.length} computable) present") {}
         benchmark.report('Load and apply overrides') do
           @overrides = OverrideSet.load(overrides_path, schema)
-          @overrides_results_first = @overrides.apply_all(all_transactions)
+          @overrides_results_first = @overrides.apply_all(all_transactions, ignore_unused_before_date: truncate_before, ignore_unused_after_date: truncate_before)
         end
         benchmark.report('Log override misses') do
           @overrides_results_first[:unused_overrides].each do |ov|

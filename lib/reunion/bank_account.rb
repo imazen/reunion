@@ -132,7 +132,16 @@ module Reunion
 
 
       @transactions = txns
-      @statements = @input_files.map{|af| af.statements}.flatten.compact
+      # Drop statements based on cut-off dates
+      @statements = @input_files.map{|af| af.statements}.flatten.compact.select do |s|
+        if truncate_before && s.date < truncate_before
+          s[:discard] = true; s[:discard_reason] = "Dropping statements prior to " + truncate_before.strftime("%Y-%m-%d")
+        end
+        if truncate_after && s.date > truncate_after
+          s[:discard] = true; s[:discard_reason] = "Dropping statements after " + truncate_after.strftime("%Y-%m-%d")
+        end
+      end
+      @statements = @statements.select{|s| s[:discard].nil?}
     end 
 
 

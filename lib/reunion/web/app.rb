@@ -21,7 +21,7 @@ module Reunion
 
       def initialize(org_creator:)
         super
-        create_org = org_creator
+        self.create_org = org_creator
         
       end
 

@@ -6,6 +6,7 @@
 - @is_invalid = ->(f){f.account.nil? || f.parser.nil? || f.invalid_transactions.nil? || !f.invalid_transactions.empty? }
 - @is_warning = ->(f){ f.txns_ignored > 0 }
 - @files = @files.stable_sort_by{|f| @is_invalid.call(f) ? 1 : @is_warning.call(f) ? 2 : 3}
+
 table.table.table-condensed
   tr
     th Path
@@ -28,8 +29,8 @@ table.table.table-condensed
         = f.account.nil? ? "No account found" : f.account.name + " - " + f.account.currency.to_s
       - unless f.parser.nil? || f.account.nil?   
         td  
-          = f.total_count
-        - if f.total_count > 0 && f.txns_used == 0
+          = f.total_count || "total_count nil"
+        - if f.total_count.nil? || (f.total_count > 0 && f.txns_used == 0)
           td.bg-danger
             = f.txns_used 
         - else
@@ -41,7 +42,7 @@ table.table.table-condensed
         - else
           td
             = f.txns_ignored
-        - if f.invalid_count > 0
+        - if f.invalid_count.nil? || f.invalid_count > 0
           td.bg-danger
             = f.invalid_count
         - else

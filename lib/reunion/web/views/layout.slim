@@ -30,7 +30,10 @@ html lang="en"
         .navbar-collapse.collapse.bs-navbar-collapse role="navigation"
           ul.nav.navbar-nav
             li
-              a href="/import/sources" 1. Import
+              a href="/import/sources" 
+                | 1. Import
+                - if org.truncate_before
+                  |  (after #{org.truncate_before})
             li
               a href="/bank" 2. Reconcile
             li
