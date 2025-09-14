@@ -28,9 +28,15 @@ EOF
   s.add_dependency('commonmarker')
   s.add_dependency('slim')
   s.add_dependency('sinatra', '>= 2.2.2')
-  s.add_dependency('ofx', '>= 0.3.3')
+  s.add_dependency('ofx', '>= 0.3.3') # Use imazen/ofx for now
   s.add_dependency('better_errors')
-  
+  s.add_dependency('bigdecimal')
+  s.add_dependency('csv')
+  s.add_dependency('rack')
+  s.add_dependency('rackup')
+  s.add_dependency('triez') # Use lilith/triez for now
+  s.add_dependency('benchmark')
+  s
   # Test libraries
   s.add_development_dependency('minitest')
   s.add_development_dependency('rack-test')
