@@ -87,6 +87,26 @@ module Reunion
     end
   end
 
+
+  class CitiCsvParser < ParserBase
+
+    def parse(text)
+
+      a = CSV.parse(text, **csv_options)
+      #  Status,Date,Description,Debit,Credit
+      # Cleared,06/30/2025,"WWW COSTCO COM 800-955-2292 WA",2120.96,
+      {transactions:
+        a.map { |l|
+          {date:  Date.strptime(l[:date], '%m/%d/%Y'),
+            description: l[:description],
+            amount: l[:debit] && !l[:debit].empty? ? parse_amount(l[:debit]) * -1 : parse_amount(l[:credit])
+          }
+        }.reverse
+      }
+    end
+  end
+
+
   class NewAmexCsvParser < ParserBase
 
     def parse(text)
