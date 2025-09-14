@@ -232,9 +232,17 @@ module Reunion
         end 
 
         current_base_url = "/reports/#{r.path}"
+        parent_base_url = "/reports/#{r.slugs[0..-2] * '/'}"
+
+    
+
         #filter out 'captures' key
         current_url_params = params.dup.reject{|k,v| k == "captures"}
-   
+
+
+        unfiltered_params = current_url_params.dup.select{|k,v| !k.start_with?('search_')}
+        unfiltered_url = "#{current_base_url}?#{URI.encode_www_form(unfiltered_params)}"
+    
         field_set = (params["field_set"] || "default").to_sym
 
         fields = case field_set
@@ -259,13 +267,79 @@ module Reunion
         sort_asc = params["sort_asc"] == "true"
         sort_urls = {}
 
-        search_description = params["search_desc"]
-
         original_count = r.transactions.nil? ? 0 : r.transactions.count
 
-        if !search_description.nil? && !search_description.empty? && r.transactions
-          r.transactions = r.transactions.select{|t| t.description.downcase.include?(search_description.downcase)}
-        end
+        can_search = r.transactions
+
+
+        # build search filter for multiple fields + values. Keys are search_field for values
+        search_hash = params.select{|k,v| k.start_with?("search_")}.map{|k,v| [k["search_".length..-1].to_sym, v]}.to_h
+
+        field_aliases = {desc: [:description, :description2], description: [:description, :description2], default: [:date, :amount, :description, :vendor, :subledger, :memo, :description2, :account_sym]}
+        
+        field_friendly = {desc: "Description", description: "Description", default: "Search"}
+
+        filter_summary_string = ""
+        real_filters_exist = false
+
+        search_hash.each do |k,v|
+          search_field_hash = {}
+
+
+          (field_aliases[k] || [k]).each do |k2|
+            normalized_value = nil
+            begin 
+              normalized_value = r.schema.normalize_field(k2, v)
+              if normalized_value.nil? || !r.schema.validate_field(k2, normalized_value).nil? 
+                normalized_value = nil 
+              end 
+              if !normalized_value.nil? && normalized_value.is_a?(String)
+                if normalized_value.empty?
+                  normalized_value = nil 
+                else
+                  normalized_value = Regexp.new(Regexp.escape(normalized_value), Regexp::IGNORECASE)
+                end 
+              end 
+            rescue Exception => e
+              normalized_value = nil 
+            end 
+            if !normalized_value.nil?
+              search_field_hash[k2] = normalized_value
+              filter_summary_string += "#{k2} == #{normalized_value.inspect} | "
+              real_filters_exist = true
+            end 
+          end 
+
+
+          # Someday, if we make safe construction of Rules rather than eval, we could use
+          # Rules.new + RuleEngine.new + .find_matches(from)
+
+          # Further filter transactions.
+          if !r.transactions.nil? && search_field_hash.any?
+            before_filter_count = r.transactions.count
+            r.transactions = r.transactions.select do |t|
+              search_field_hash.any? do |field_name, search_value|
+                txn_value = t.data[field_name]
+                if !txn_value.nil?
+                  # if it's a string
+                  if search_value.is_a?(Regexp)
+                    search_value.match(txn_value.to_s)
+                  else
+                    txn_value == search_value
+                  end 
+                end 
+              end 
+            end 
+            after_filter_count = r.transactions.count
+            this_breadcrumb_url = "#{current_base_url}?#{URI.encode_www_form(unfiltered_params.dup.merge("search_#{k}" => v))}"
+            this_breadcrumb_field_name =field_friendly[k] || k.to_s.humanize
+            this_breadcrumb = {name: "(#{this_breadcrumb_field_name}: '#{v}' - #{before_filter_count - after_filter_count} hidden)", path: this_breadcrumb_url}
+            r.breadcrumbs << this_breadcrumb
+          end 
+
+        end 
+        filter_summary_string = nil if !real_filters_exist || filter_summary_string.empty?
+        
 
         r.schema.fields.keys.each do |f|
           if sort_by && f.to_sym == sort_by.to_sym
@@ -318,21 +392,20 @@ module Reunion
           end
         end
 
-        # describe current_url_params and offer a link to the base url
-        current_filter_explanation = if current_url_params.empty?
-          nil
-        else
-          string = ""
-          unless search_description.nil? || search_description.empty? || r.transactions.nil?
-            net_amount = r.transactions.map{|t| t.amount}.sum
 
-            string += "(description contains '#{search_description}' - showing #{r.transactions.count} of #{original_count}. Net amount: #{r.schema.fields[:amount].format(net_amount)} "  
-          end
-          if sort_by
-            string += "sorting #{sort_asc ? 'ascending' : 'descending'} by #{sort_by}."
-          end 
-          string + ")"
+        result_summary_string = unless r.transactions.nil?
+          net_amount = r.transactions.map{|t| t.amount}.sum
+          "Matched #{r.transactions.count} of #{original_count} (#{(original_count - r.transactions.count)} hidden) within #{r.path}. Net $#{r.schema.fields[:amount].format(net_amount)}."  
+        else
+          nil
         end
+
+        sort_summary_string = if sort_by && !r.transactions.nil?
+          "(sorted #{sort_asc ? 'ascending' : 'descending'} by #{sort_by})"
+        else
+          nil
+        end 
+        unsorted_url = "#{current_base_url}?#{URI.encode_www_form(params.dup.delete_if{|k,v| k == "sort_by" || k == "sort_asc"})}" 
 
         
         if params["format"] == "csv"
@@ -345,10 +418,18 @@ module Reunion
           # content_length body.bytesize
           body
         else
-          slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, :basepath => '/reports/', unfiltered_url: current_base_url, current_filter_explanation: current_filter_explanation}}
+          slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, 
+          :basepath => '/reports/', 
+          filter_summary_string: filter_summary_string,
+          result_summary_string: result_summary_string,
+          sort_summary_string: sort_summary_string,
+          unfiltered_url: unfiltered_url, 
+          unsorted_url: unsorted_url,
+          can_search: can_search, base_url: current_base_url, search_default: params["search_default"]}}
         end
       end
 
+      # not sure if this is still used anywhere.
       get '/expense/?:year?/?' do |year| 
 
         year ||= "allyears"

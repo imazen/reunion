@@ -6,9 +6,9 @@ Gem::Specification.new do |s|
   s.name        = "reunion"
   s.version     = '0.0.1'
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Nathanael Jones"]
-  s.email       = ["nathanael.jones@gmail.com"]
-  s.homepage    = "http://github.com/nathanaeljones/reunion"
+  s.authors     = ["Lilith River"]
+  s.email       = ["lilith@imazen.io"]
+  s.homepage    = "http://github.com/lilith/reunion"
   s.summary     = %q{Evidenced-based, repeatable accounting library and webapp}
   s.description = <<-EOF
 Reunion takes your exported, overlapping, transaction records (.ofx, .qfx, .csv, .txt, etc) and merges them into a single, normalized file per account.

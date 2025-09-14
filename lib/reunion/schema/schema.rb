@@ -33,6 +33,14 @@ module Reunion
       fields.key?(field.to_sym) ? fields[field].format(value) : value.to_s
     end
 
+    def normalize_field(field, value)
+      fields.key?(field.to_sym) ? fields[field].normalize(value) : value
+    end 
+
+    def validate_field(field, value)
+      fields.key?(field.to_sym) ? fields[field].validate(value) : nil
+    end 
+
     def field_names_tagged(tag)
       field_pairs_tagged(tag).map{|pair| pair[0]}
     end
