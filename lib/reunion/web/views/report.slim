@@ -86,6 +86,10 @@ div.filters_and_summaries
                   | &nbsp;
                   a class="searchemail" href=transaction_metadata[i][:search_url] target="_blank"
                     | 📧
+                - if transaction_metadata && transaction_metadata[i][:search_url_2]
+                  | &nbsp;
+                  a class="searchemail" href=transaction_metadata[i][:search_url_2] target="_blank"
+                    | 📧
                 a class="searchemail" href="https://www.google.com/search?q=#{row[k]}" target="_blank"
                   | &nbsp;&nbsp;🌐
                   /// or 🔍
@@ -93,7 +97,7 @@ div.filters_and_summaries
                   | &nbsp;
                   a class="searchemail" href=transaction_metadata[i][:filter_url]
                     | ⬅️
-              - if k == :description && row[:description2]
+              - if k == :description && row[:description2] && row[:description2].length > 0
                 p style="max-width:20em;color:gray;"
                   = row[:description2]
                 

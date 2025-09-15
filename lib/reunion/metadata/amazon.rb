@@ -170,27 +170,4 @@ module Reunion
     end
   end
 
-  # For the request-my-data format
-  class RetailOrderHistory
-
-    # Shipment Item Subtotal (decimal)
-    # Shipment Item Subtotal Tax  (decimal)
-    # Payment Instrument Type (' and ' delimited strings, e.g. "Visa - 1234 and Gift Certificate" etc)
-    # Product Name (string)
-    # Order ID  (string)
-    # Order Date  (YYYY-MM-DDThh:mm:ss+00:00Z format)
-
-    # Ship Date (YYYY-MM-DDThh:mm:ss+00:00Z format)
-
-
-    def initialize(items, shipments, schema)
-      @items = items
-      @shipments = shipments
-      @schema = schema
-    end
-
-    def aggregate
-      AmazonAggregator.new.aggregate(@items, @shipments, @schema)
-    end
-  end
 end

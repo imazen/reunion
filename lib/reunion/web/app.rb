@@ -317,6 +317,7 @@ module Reunion
           # Further filter transactions.
           if !r.transactions.nil? && search_field_hash.any?
             before_filter_count = r.transactions.count
+            epsilon = BigDecimal("0.01")
             r.transactions = r.transactions.select do |t|
               search_field_hash.any? do |field_name, search_value|
                 txn_value = t.data[field_name]
@@ -324,6 +325,8 @@ module Reunion
                   # if it's a string
                   if search_value.is_a?(Regexp)
                     search_value.match(txn_value.to_s)
+                  elsif search_value.is_a?(BigDecimal)
+                    txn_value < search_value + epsilon && txn_value > search_value - epsilon
                   else
                     txn_value == search_value
                   end 
@@ -381,12 +384,24 @@ module Reunion
               query_str = URI.encode_www_form(query)
               # build the url
               metadata[:search_url] = "https://mail.google.com/mail/u/0/#advanced-search/#{query_str}" 
-            end 
+
+            end
+
             # search by the first word of the description, 
             if txn[:description]
               first_word = txn[:description].split(' ').first
               new_params = params.dup.merge({search_desc: first_word})
               metadata[:filter_url] =  "#{current_base_url}?#{URI.encode_www_form(new_params)}" 
+
+              # If starts with Amazon, add fallback search
+              #Fallback - for amazon, because charged amounts aren't listed.
+              if first_word.upcase.start_with?('AMAZON')
+                query = { subset: "all", has: "\"Your Amazon.com order\" \"has shipped\"", within: "1w", date: txn[:date].strftime("%Y/%m/%d") }
+                # url encode and & delimit query hash
+                query_str = URI.encode_www_form(query)
+                # build the url
+                metadata[:search_url_2] = "https://mail.google.com/mail/u/0/#advanced-search/#{query_str}" 
+              end 
             end
             metadata
           end
