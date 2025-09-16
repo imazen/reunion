@@ -610,6 +610,23 @@ module Reunion
               $stdout << sprintf("Overall: considered=%d matched=%d unmatched=%d match_rate=%.1f%% fee_adjusted=%d (per_item<= %.2f)\n", total_considered, total_matched, total_unmatched, rate, total_fee_adjusted, final_pass_settings[:fee_cents]/100.0)
               gift_pct_total = dataset_items_total.zero? ? 0.0 : (100.0 * dataset_items_with_gift.to_f / dataset_items_total)
               $stdout << sprintf("Gift-card involvement: items_with_gift=%d of %d (%.1f%%)\n", dataset_items_with_gift, dataset_items_total, gift_pct_total)
+
+              # Report unmapped cards
+              all_card_texts = items.map { |i| i[:card_text] }.uniq.compact
+              unmapped_cards = all_card_texts.select do |card_text|
+                is_unmapped = bank_tag_for_card(card_text).nil?
+                is_generic = card_text.downcase.include?('gift') || card_text == 'Not Available'
+                is_unmapped && !is_generic
+              end
+
+              if unmapped_cards.any?
+                $stdout << "\nUnmapped Payment Instruments Found:\n"
+                unmapped_cards.sort.each do |card|
+                  $stdout << "  - #{card}\n"
+                end
+                $stdout << "\n"
+              end
+
               (considered_by_label.keys | matched_by_label.keys | unmatched_by_label.keys).sort.each do |label|
                 c = considered_by_label[label]
                 m = matched_by_label[label]

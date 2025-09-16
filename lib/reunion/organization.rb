@@ -50,7 +50,7 @@ module Reunion
     def bank_file_tags
       @bank_file_tags ||= {}
       bank_accounts.each do |a|
-        a.file_tags.each do |tag|
+        (a.file_tags || []).each do |tag|
           @bank_file_tags[tag.downcase.to_sym] = a
         end
       end
