@@ -337,225 +337,113 @@ module Reunion
               progress_every = (ENV['AMAZON_RETAIL_PROGRESS_EVERY'] || '25').to_i
               processed = 0
               total_matched_so_far = 0
-              settings = {
-                fee_cents: (ENV['AMAZON_RETAIL_FEE_MAX_PER_ITEM_CENTS'] || '50').to_i,
-                fee_percent: (ENV['AMAZON_RETAIL_FEE_MAX_PER_ITEM_PERCENT'] || '9').to_i,
-                allow_cross_order_comb: (ENV['AMAZON_RETAIL_ALLOW_CROSS_ORDER_COMB'] == 'true'),
-                include_used: @debug ? true : (ENV['AMAZON_RETAIL_INCLUDE_USED'] == 'true'),
-                order_after_txn_days: @debug ? 1 : (ENV['AMAZON_RETAIL_ORDER_AFTER_TXN_DAYS'] || '1').to_i,
-                ship_before_txn_days: @debug ? 14 : (ENV['AMAZON_RETAIL_SHIP_BEFORE_TXN_DAYS'] || '6').to_i,
-                ship_after_txn_days: @debug ? 32 : (ENV['AMAZON_RETAIL_SHIP_AFTER_TXN_DAYS']  || '16').to_i
-              }
 
-              bank_txns.each do |txn|
-                bank_tag = txn[:account_sym]
-                # Use default label derived from account file_tags or fallback to camel-cased permanent id
-                label = @bank_tag_to_label[bank_tag] || camel_case_label(bank_tag)
-                considered_by_label[label] += 1
-                # Constrain items to those charged to one of this account's last4s
-                last4s_for_account = @bank_tag_to_last4s[bank_tag] || []
-                # If we have no mapping, skip
-                if last4s_for_account.empty?
-                  unmatched_by_label[label] << { txn: txn, reason: 'no_last4_mapping', attempts: [], potentials: [] }
-                  next
-                end
+              pass_settings = [
+                {
+                  name: 'strict',
+                  fee_cents: 30,
+                  fee_percent: 0,
+                  allow_cross_order_comb: false,
+                  order_after_txn_days: 0,
+                  ship_before_txn_days: 0,
+                  ship_after_txn_days: 2,
+                  match_method: :subset,
+                  include_used: false
+                },
+                {
+                  name: 'standard',
+                  fee_cents: (ENV['AMAZON_RETAIL_FEE_MAX_PER_ITEM_CENTS'] || '50').to_i,
+                  fee_percent: (ENV['AMAZON_RETAIL_FEE_MAX_PER_ITEM_PERCENT'] || '9').to_i,
+                  allow_cross_order_comb: (ENV['AMAZON_RETAIL_ALLOW_CROSS_ORDER_COMB'] == 'true'),
+                  order_after_txn_days: @debug ? 1 : (ENV['AMAZON_RETAIL_ORDER_AFTER_TXN_DAYS'] || '1').to_i,
+                  ship_before_txn_days: @debug ? 14 : (ENV['AMAZON_RETAIL_SHIP_BEFORE_TXN_DAYS'] || '6').to_i,
+                  ship_after_txn_days: @debug ? 32 : (ENV['AMAZON_RETAIL_SHIP_AFTER_TXN_DAYS']  || '16').to_i,
+                  match_method: :subset,
+                  include_used: @debug ? true : (ENV['AMAZON_RETAIL_INCLUDE_USED'] == 'true')
+                },
+                {
+                  name: 'rewards',
+                  fee_cents: 0,
+                  fee_percent: (ENV['AMAZON_RETAIL_REWARDS_MAX_PERCENT'] || '25').to_i,
+                  allow_cross_order_comb: true,
+                  order_after_txn_days: 5,
+                  ship_before_txn_days: 0,
+                  ship_after_txn_days: 3,
+                  match_method: :superset,
+                  include_used: false
+                }
+              ]
 
-                # Pre metrics
-                pre_items = last4s_for_account.flat_map { |l4| items_by_last4_and_date[l4].values.flat_map(&:itself) }.uniq
-                pre_items = pre_items.reject { |i| parse_card_last4s(i[:card_text]).map { |tok| tok.split('_').last }.any? { |l4| @last4_to_ignore.include?(l4) } }
-                pre_count = pre_items.length
-                pre_unused = pre_items.count { |i| !i[:used] }
+              current_txns = bank_txns
+              final_pass_settings = {}
+              pass_settings.each_with_index do |settings, pass_index|
+                final_pass_settings = settings
+                next_pass_txns = []
+                unmatched_by_label.clear
 
-                # Candidate items for this txn: matching last4 and exact date from index
-                candidates = last4s_for_account.flat_map { |l4| items_by_last4_and_date[l4][txn.date] }.uniq
-                # Optionally exclude previously used items
-                candidates = candidates.select { |i| !i[:used] } unless settings[:include_used]
-                # Enforce settle-relative temporal logic
-                candidates = candidates.select do |i|
-                  order_ok = i[:order_date].nil? || (i[:order_date] <= (txn.date + settings[:order_after_txn_days]))
-                  ship_ok = i[:ship_date].nil? || (((i[:ship_date] - settings[:ship_before_txn_days]) <= txn.date) && (txn.date <= (i[:ship_date] + settings[:ship_after_txn_days])))
-                  order_ok && ship_ok
-                end
-                candidates_count = candidates.length
-                # Sort candidates by probability based on date deltas
-                candidates.sort_by! do |item|
-                  # Score based on how close the item's dates are to the transaction date,
-                  # prioritizing the common deltas observed in the histogram.
-                  ship_delta = item[:ship_date] ? (txn.date - item[:ship_date]).to_i : nil
-                  order_delta = item[:order_date] ? (txn.date - item[:order_date]).to_i : nil
+                current_txns.each do |txn|
+                  bank_tag = txn[:account_sym]
+                  label = @bank_tag_to_label[bank_tag] || camel_case_label(bank_tag)
+                  considered_by_label[label] += 1 if pass_index == 0
 
-                  # Lower score is better. Assign best scores to most frequent deltas.
-                  ship_score = ship_delta.nil? ? 99 : (ship_delta >= 0 ? ship_delta - 1 : ship_delta * -1 + 21)
+                  last4s_for_account = @bank_tag_to_last4s[bank_tag] || []
+                  if last4s_for_account.empty?
+                    unmatched_by_label[label] << { txn: txn, reason: 'no_last4_mapping' } if pass_index == pass_settings.length - 1
+                    next_pass_txns << txn
+                    next
+                  end
 
-                  order_score = order_delta.nil? ? 99 : (order_delta > 0 ? order_delta - 1 : order_delta * -1 + 7)
+                  all_items = items_by_last4_and_date.values.flat_map { |d| d.values }.flatten.uniq
+                  candidates = all_items.select do |i|
+                    !i[:used] &&
+                    (i[:order_date] && (i[:order_date] <= (txn.date + settings[:order_after_txn_days]))) &&
+                    (i[:ship_date] && ((i[:ship_date] - settings[:ship_before_txn_days]) <= txn.date) && (txn.date <= (i[:ship_date] + settings[:ship_after_txn_days])))
+                  end
 
-                  # Prioritize ship date score, then order date score, then by item value.
-                  [ship_score, order_score, -item[:total_owed]]
-                end
-                # Gift card involvement stats for this txn's candidate items
-                gift_item_count = candidates.count { |i| (i[:card_text] || '').downcase.include?('gift') }
-                gift_item_pct = candidates_count.zero? ? 0.0 : (100.0 * gift_item_count.to_f / candidates_count)
+                  if candidates.empty?
+                    unmatched_by_label[label] << { txn: txn, reason: "no_candidates_#{settings[:name]}_pass" } if pass_index == pass_settings.length - 1
+                    next_pass_txns << txn
+                    next
+                  end
 
-                desired_cents = (-txn.amount * 100).round
+                  desired_cents = (-txn.amount * 100).round
+                  matched_items = nil
+                  fee_or_discount = 0
 
-                # Track attempts for logging
-                attempts = []
+                  if settings[:match_method] == :subset
+                    max_fee_for_txn = [(settings[:fee_cents] * candidates.length), (desired_cents * settings[:fee_percent] / 100.0)].max.to_i
+                    matched_items, fee_or_discount = find_best_subset(candidates, desired_cents, max_fee_cents: max_fee_for_txn)
+                  else # :superset
+                    matched_items, fee_or_discount = find_best_superset(candidates, desired_cents, max_discount_percent: settings[:fee_percent])
+                  end
 
-                # First try per-order matches, preferring exact, otherwise closest within fee tolerance
-                matched_items = nil
-                matched_order_id = nil
-                matched_fee_cents = 0
-                best_items = nil
-                best_order_id = nil
-                best_fee_cents = nil
-                order_ids = candidates.map { |c| c[:order_id] }.uniq
-                # Track gift-mixed orders among candidates for diagnostics
-                gift_mix_by_order = {}
-                order_ids.each do |oid|
-                  rows = candidates.select { |c| c[:order_id] == oid }
-                  gift_mix_by_order[oid] = rows.any? { |r| (r[:card_text] || '').downcase.include?('gift') }
-                  total_cents = rows.inject(0) { |s,r| s + (r[:owed_cents] || 0) }
-                  k_rows = rows.length
-                  attempts << { scope: "order #{oid}", type: 'order_total', k: k_rows, tested_total: (total_cents/100.0), desired: (desired_cents/100.0) }
-                  if total_cents == desired_cents
-                    matched_items = rows
-                    matched_order_id = oid
-                    matched_fee_cents = 0
-                    break
+                  if matched_items && !matched_items.empty?
+                    matched_by_label[label] += 1
+                    matched_with_fee_by_label[label] += 1 if fee_or_discount > 0
+
+                    matched_items.each { |i| i[:used] = true }
+
+                    description = if settings[:name] == 'rewards'
+                                    "(guessed) Rewards Match: " + extractor.describe(matched_items) + sprintf(" [discount=%.2f]", fee_or_discount/100.0)
+                                  else
+                                    desc = extractor.describe(matched_items)
+                                    desc += sprintf(" [fee_adjust=%.2f]", fee_or_discount/100.0) if fee_or_discount > 0
+                                    desc
+                                  end
+
+                    outputs[label] << Reunion::Transaction.new(
+                      schema: @org.schema,
+                      date: txn.date,
+                      amount: txn.amount,
+                      description: 'AMAZON.COM',
+                      description2: description
+                    )
                   else
-                    # Candidate: within fee tolerance for whole order
-                    max_fee_for_txn = [(settings[:fee_cents] * k_rows), (desired_cents * settings[:fee_percent] / 100.0)].max.to_i
-                    diff = desired_cents - total_cents
-                    if diff >= 0 && diff <= max_fee_for_txn
-                      if best_fee_cents.nil? || diff < best_fee_cents
-                        best_items = rows
-                        best_order_id = oid
-                        best_fee_cents = diff
-                      end
-                    end
-                  end
-
-                  subset, subset_fee = find_best_subset(rows, desired_cents, max_fee_cents: max_fee_for_txn, attempts: attempts, scope: "order #{oid}")
-                  if subset && subset_fee == 0
-                    matched_items = subset
-                    matched_order_id = oid
-                    matched_fee_cents = 0
-                    break
-                  elsif subset
-                    if best_fee_cents.nil? || subset_fee < best_fee_cents
-                      best_items = subset
-                      best_order_id = oid
-                      best_fee_cents = subset_fee
-                    end
+                    unmatched_by_label[label] << { txn: txn, reason: "no_match_#{settings[:name]}_pass" } if pass_index == pass_settings.length - 1
+                    next_pass_txns << txn
                   end
                 end
-                if matched_items.nil? && best_items
-                  matched_items = best_items
-                  matched_order_id = best_order_id
-                  matched_fee_cents = best_fee_cents || 0
-                end
-
-                # If no per-order match, optionally attempt across all candidates (guard combinations)
-                if matched_items.nil? && settings[:allow_cross_order_comb]
-                  max_fee_for_txn = [(settings[:fee_cents] * candidates.length), (desired_cents * settings[:fee_percent] / 100.0)].max.to_i
-                  matched_items, matched_fee_cents = find_best_subset(candidates, desired_cents, max_fee_cents: max_fee_for_txn, attempts: attempts, scope: 'all candidates')
-                end
-
-                if matched_items && !matched_items.empty?
-                  # Log any reused items in this match
-                  reused_items = matched_items.select { |i| i[:used] }
-                  if reused_items.any?
-                    @reuse_log << { txn: txn, reused: reused_items, all_matched: matched_items }
-                  end
-
-                  # Record date deltas for histogram
-                  matched_items.each do |item|
-                    if item[:order_date]
-                      delta = (txn.date - item[:order_date]).to_i
-                      @order_date_deltas[delta] += 1
-                    end
-                    if item[:ship_date]
-                      delta = (txn.date - item[:ship_date]).to_i
-                      @ship_date_deltas[delta] += 1
-                    end
-                  end
-
-                  # Mark used
-                  matched_items.each { |i| i[:used] = true }
-                  # Build one metadata txn aligned to the bank transaction
-                  description2 = if matched_order_id && matched_items.all? { |i| i[:order_id] == matched_order_id }
-                    (matched_items.length > 1 ? "#{matched_items.length} items " : "") + extractor.describe(matched_items) + " Order #{matched_order_id}"
-                  else
-                    # Multiple orders combined
-                    grouped = matched_items.group_by { |i| i[:order_id] }
-                    grouped.map { |oid, rows| (rows.length > 1 ? "#{rows.length} items " : "") + extractor.describe(rows) + " Order #{oid}" }.join(" || ")
-                  end
-                  if matched_fee_cents && matched_fee_cents > 0
-                    description2 += sprintf(" [fee_adjust=%.2f]", matched_fee_cents/100.0)
-                    matched_with_fee_by_label[label] += 1
-                  end
-
-                  outputs[label] << Reunion::Transaction.new(
-                    schema: @org.schema,
-                    date: txn.date,
-                    amount: txn.amount,
-                    description: 'AMAZON.COM',
-                    description2: description2
-                  )
-                  matched_by_label[label] += 1
-                else
-                  # Log unmatched with potential candidates (with totals < amount)
-                  potentials = candidates.select { |i| (i[:owed_cents] || 0) < desired_cents }
-                  # Capture candidate item details for grouped listing by order (pre-sorted for readability)
-                  cand_source = candidates.sort_by { |ci| [ (ci[:ship_date] || ci[:order_date] || Date.new(1900,1,1)), ci[:order_id], ci[:asin] ] }
-                  cand_items = cand_source.map do |i|
-                    {
-                      order_id: i[:order_id],
-                      total_owed: i[:total_owed],
-                      ship_date: i[:ship_date],
-                      order_date: i[:order_date],
-                      product_name: i[:product_name]
-                    }
-                  end
-                  # Classify gift-card compromise if all candidate orders are gift mixed
-                  gift_orders = gift_mix_by_order.values.count { |v| v }
-                  reason_code = if candidates_count == 0
-                    'no_candidates_after_filters'
-                  elsif !gift_mix_by_order.empty? && gift_orders == gift_mix_by_order.size
-                    'gift_card_compromised'
-                  else
-                    'no_match'
-                  end
-                  unmatched_by_label[label] << {
-                    txn: txn,
-                    reason: reason_code,
-                    attempts: attempts,
-                    candidates: cand_items,
-                    potentials: potentials[0,10],
-                    metrics: {
-                      last4s: last4s_for_account,
-                      pre_items: pre_count,
-                      pre_unused: pre_unused,
-                      candidates: candidates_count,
-                      gift_orders: gift_orders,
-                      total_orders: gift_mix_by_order.size,
-                      fee_max_per_item: settings[:fee_cents]/100.0,
-                      gift_item_pct: gift_item_pct
-                    }
-                  }
-                  
-                end
-
-                processed += 1
-                total_matched_so_far = matched_by_label.values.inject(0, :+)
-                if progress_every > 0 && (processed % progress_every == 0)
-                  elapsed = Time.now - start_time
-                  rate = processed / [elapsed, 0.001].max
-                  remaining = bank_txns.length - processed
-                  eta = remaining / [rate, 0.001].max
-                  $stdout << sprintf("AmazonRetail progress: %d/%d (%.1f%%) matched=%d elapsed=%.1fs eta=%.1fs\n",
-                    processed, bank_txns.length, 100.0*processed/bank_txns.length, total_matched_so_far, elapsed, eta)
-                end
+                current_txns = next_pass_txns
               end
 
               # Write per-account files
@@ -582,15 +470,17 @@ module Reunion
                       f << "  metrics last4s=[#{m[:last4s]*','}] pre_items=#{m[:pre_items]} pre_unused=#{m[:pre_unused]} candidates=#{m[:candidates]}#{gift_part}\n"
                     end
                     # Overview: date windows and candidate/used counts
-                    order_pre  = (ENV['AMAZON_RETAIL_ORDER_DATE_PRE_DAYS']  || '0').to_i
-                    order_post = (ENV['AMAZON_RETAIL_ORDER_DATE_POST_DAYS'] || '4').to_i
-                    ship_pre   = (ENV['AMAZON_RETAIL_SHIP_DATE_PRE_DAYS']   || '2').to_i
-                    ship_post  = (ENV['AMAZON_RETAIL_SHIP_DATE_POST_DAYS']  || '7').to_i
+                    # Overview: date windows and candidate/used counts from the final pass
+                    order_after_txn_days = final_pass_settings[:order_after_txn_days]
+                    ship_before_txn_days = final_pass_settings[:ship_before_txn_days]
+                    ship_after_txn_days = final_pass_settings[:ship_after_txn_days]
+                    include_used = final_pass_settings[:include_used]
+
                     used_excluded = nil
                     if u[:metrics]
                       used_excluded = u[:metrics][:pre_items].to_i - u[:metrics][:pre_unused].to_i
                     end
-                    f << "  overview ship_window=[-#{ship_pre}..+#{ship_post}] order_window=[-#{order_pre}..+#{order_post}] txn_date=#{t.date} included_candidates=#{u.dig(:metrics, :candidates) || 'nil'} excluded_used=#{used_excluded || 'nil'} include_used=#{settings[:include_used]} settle_rules order_after_txn_days=#{settings[:order_after_txn_days]} ship_relative=[-#{settings[:ship_before_txn_days]}..+#{settings[:ship_after_txn_days]}]\n"
+                    f << "  overview ship_window=[-#{ship_before_txn_days}..+#{ship_after_txn_days}] order_window=[0..+#{order_after_txn_days}] txn_date=#{t.date} included_candidates=#{u.dig(:metrics, :candidates) || 'nil'} excluded_used=#{used_excluded || 'nil'} include_used=#{include_used}\n"
                     # First: candidate items grouped by order
                     if u[:candidates] && !u[:candidates].empty?
                       f << "  candidates (grouped by order):\n"
@@ -717,7 +607,7 @@ module Reunion
                   end
                 end
               end
-              $stdout << sprintf("Overall: considered=%d matched=%d unmatched=%d match_rate=%.1f%% fee_adjusted=%d (per_item<= %.2f)\n", total_considered, total_matched, total_unmatched, rate, total_fee_adjusted, settings[:fee_cents]/100.0)
+              $stdout << sprintf("Overall: considered=%d matched=%d unmatched=%d match_rate=%.1f%% fee_adjusted=%d (per_item<= %.2f)\n", total_considered, total_matched, total_unmatched, rate, total_fee_adjusted, final_pass_settings[:fee_cents]/100.0)
               gift_pct_total = dataset_items_total.zero? ? 0.0 : (100.0 * dataset_items_with_gift.to_f / dataset_items_total)
               $stdout << sprintf("Gift-card involvement: items_with_gift=%d of %d (%.1f%%)\n", dataset_items_with_gift, dataset_items_total, gift_pct_total)
               (considered_by_label.keys | matched_by_label.keys | unmatched_by_label.keys).sort.each do |label|
@@ -746,6 +636,41 @@ module Reunion
                   $stdout << "    #{delta}: #{@ship_date_deltas[delta]}\n"
                 end
               end
+            end
+
+            def find_best_superset(items, desired_cents, max_discount_percent: 0)
+              # Find the smallest combination of items that is *greater* than desired_cents,
+              # but within the discount percentage.
+              max_discount_cents = (desired_cents * max_discount_percent / 100.0).to_i
+              
+              arr = items.sort_by { |i| i[:owed_cents] || 0 }
+
+              best_set = nil
+              best_discount = nil
+
+              (1..[arr.length, 5].min).each do |k|
+                arr.combination(k).each do |set|
+                  total_cents = set.inject(0) { |s, i| s + (i[:owed_cents] || 0) }
+                  discount = total_cents - desired_cents
+
+                  if discount > 0 && discount <= max_discount_cents
+                    if best_discount.nil? || discount < best_discount
+                      best_discount = discount
+                      best_set = set
+                    end
+                  end
+                end
+                # If we found a good match at this k, we can stop. 
+                # Smaller combinations are better.
+                return [best_set, best_discount] if best_set
+              end
+
+              [best_set, best_discount]
+            end
+
+            def add_result(txn, desired_cents, description, order_id, items)
+              # This is a placeholder for a method that would add the transaction to the results.
+              # In the actual implementation, this would likely add to the `outputs` hash.
             end
 
             # Find the best subset with minimal positive fee difference (<= max_fee_cents), preferring exact (0 diff)
