@@ -35,6 +35,7 @@ div.report_toolbar
     a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv" Download CSV
     a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv&field_set=exex" Download Expense File
     a.btn.btn-primary href="/reports/#{r.path}?simple=true&format=csv&field_set=tax" Download Tax Export
+    a.btn.btn-primary.copy-remote-file href=tsv_url Copy Table
 
 == slim :report_summary,:layout => false,  :locals => {r: r, basepath: basepath}
 

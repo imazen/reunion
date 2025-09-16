@@ -22,6 +22,7 @@ class Reunion::Export
     end
   end
 
+
   def input_file_to_tsv(txns, drop_columns: [:account_sym, :overridden_keys, :currency, :subindex, :schema, :source, :priority, :skip_compute, :index_in_source])
     main_columns = [:date, :amount, :description] ## TODO add txn_type to bypass json generation
     main_columns.unshift(:id) if txns.count{|t| t[:id]} > txns.count * 2 / 3
@@ -114,6 +115,23 @@ class Reunion::Export
       output << "\n"
     end
     output
+  end
+
+  def tsv_from_arrays(headers, rows)
+    #Stringify and remove invalid characters
+    output = ""
+    table = ([headers] + rows).map do |r|
+      r.map{|v| (v || "").to_s.gsub(/\t\r\n/,"")}
+    end
+    table.each do |row|
+      output << row.join("\t") << "\n"
+    end
+    output
+  end
+  def transactions_to_tsv_allow_fields(txns, allowed_field_names) 
+    tsv_from_arrays(allowed_field_names, txns.map do |t|
+      allowed_field_names.map{|f| t.schema.format_field(f, t[f])}
+    end)
   end
 
   def get_tags(txn)

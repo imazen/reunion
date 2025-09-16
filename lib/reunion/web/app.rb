@@ -239,29 +239,13 @@ module Reunion
         #filter out 'captures' key
         current_url_params = params.dup.reject{|k,v| k == "captures"}
 
+        # tsv_url for copy past button
+        tsv_params = current_url_params.dup.merge(format: "tsv", simple: "true", open: "source", field_set: "display")
+        tsv_url = "#{current_base_url}?#{URI.encode_www_form(tsv_params)}"
 
         unfiltered_params = current_url_params.dup.select{|k,v| !k.start_with?('search_')}
         unfiltered_url = "#{current_base_url}?#{URI.encode_www_form(unfiltered_params)}"
-    
-        field_set = (params["field_set"] || "default").to_sym
 
-        fields = case field_set
-          when :default 
-            [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
-          when :tax
-            [:tax_expense, :date, :amount,  :description, :currency]
-          when :exex
-            [:date, :amount,:currency, :description, :vendor, :vendor_tags, :subledger, :memo, :tax_expense, :description2, :account_sym, :id]
-        end 
-        
-        filename = case field_set
-          when :default
-            "#{slugs.join('_')}.csv"
-          when :tax
-            "Transactions-#{slugs.join('_')}.csv"
-          when :exex
-            "ExEx-expensecsv-#{slugs.join('_')}.csv"  
-        end 
 
         sort_by = params["sort_by"]
         sort_asc = params["sort_asc"] == "true"
@@ -422,17 +406,12 @@ module Reunion
         end 
         unsorted_url = "#{current_base_url}?#{URI.encode_www_form(params.dup.delete_if{|k,v| k == "sort_by" || k == "sort_asc"})}" 
 
+        supported_formats = ["html", "csv", "tsv"]
+        requested_format = params["format"] || "html"
+        requested_format = "html" if !supported_formats.include?(requested_format)
+
         
-        if params["format"] == "csv"
-          STDERR << "making csv...\n"
-          attachment filename
-          content_type "text/csv"
-          body = ReportExporter.new.export_csv(report: r, schema: org.schema, 
-            txn_fields: fields
-          )
-          # content_length body.bytesize
-          body
-        else
+        if requested_format == "html"
           slim :report, {:layout => :layout, :locals => {:r => r, :transaction_metadata => transaction_metadata, sort_urls: sort_urls, 
           :basepath => '/reports/', 
           filter_summary_string: filter_summary_string,
@@ -440,8 +419,48 @@ module Reunion
           sort_summary_string: sort_summary_string,
           unfiltered_url: unfiltered_url, 
           unsorted_url: unsorted_url,
+          tsv_url: tsv_url,
           can_search: can_search, base_url: current_base_url, search_default: params["search_default"]}}
-        end
+        elsif requested_format == "csv" || requested_format == "tsv"
+
+
+          field_set = (params["field_set"] || "default").to_sym
+          fields = case field_set
+            when :display
+              r.schema.field_names_tagged(:reports)
+            when :default 
+              [:date, :amount,:currency, :description, :vendor, :subledger, :memo, :description2, :account_sym, :id]
+            when :tax
+              [:tax_expense, :date, :amount,  :description, :currency]
+            when :exex
+              [:date, :amount,:currency, :description, :vendor, :vendor_tags, :subledger, :memo, :tax_expense, :description2, :account_sym, :id]
+          end 
+          
+          filename = case field_set
+            when :default
+              "#{slugs.join('_')}.#{requested_format}"
+            when :tax
+              "Transactions-#{slugs.join('_')}.#{requested_format}"
+            when :exex
+              "ExEx-expensecsv-#{slugs.join('_')}.#{requested_format}"  
+          end
+          if params["open"] == "source"
+            content_type "text/plain"
+          else 
+            content_type "text/#{requested_format}"
+            attachment filename 
+          end 
+          if requested_format == "csv"
+            body = ReportExporter.new.export_csv(report: r, schema: org.schema, 
+              txn_fields: fields)
+          elsif requested_format == "tsv"
+            body = ReportExporter.new.export_tsv(report: r, schema: org.schema, 
+              txn_fields: fields)
+          end 
+          body
+        else
+          raise "Unknown format #{requested_format}"
+        end 
       end
 
       # not sure if this is still used anywhere.

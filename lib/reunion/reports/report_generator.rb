@@ -44,6 +44,19 @@ module Reunion
         Export.new.transactions_to_csv_allow_fields(report.transactions, txn_fields)
       end 
     end 
+
+    def export_tsv(report:, schema:, txn_fields: )
+      if report.transactions.nil?
+        rows = report.summary_table[:rows].map do |row|
+          newrow = row.dup
+          newrow[0] = newrow[0].map{|v| v[:name]} * "/"
+          newrow
+        end
+        Export.new.tsv_from_arrays(report.summary_table[:headers],rows)
+      else 
+        Export.new.transactions_to_tsv_allow_fields(report.transactions, txn_fields)
+      end 
+    end 
   end
 
   class ReportGenerator
