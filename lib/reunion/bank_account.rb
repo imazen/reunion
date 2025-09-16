@@ -1,7 +1,7 @@
 module Reunion
   class BankAccount
 
-    def initialize(name: nil, currency: :USD, permanent_id: nil)
+    def initialize(name: nil, currency: :USD, permanent_id: nil, last4: nil, file_tags: [])
       @name = name
       @currency = currency.to_s.upcase.to_sym
       @permanent_id = permanent_id
@@ -9,11 +9,16 @@ module Reunion
       @overlap_deletions = []
       @drop_other_currencies = true
       @sort = nil
+      @last4 = last4
+      if !last4.is_a?(Array)
+        @last4 = [last4]
+      end
+      @file_tags = file_tags
     end
 
-    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before, :truncate_after
+    attr_accessor :name, :currency, :permanent_id, :drop_other_currencies, :truncate_before, :truncate_after, :file_tags
 
-    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort
+    attr_accessor :input_files, :transactions, :statements, :final_discrepancy, :schema, :sort, :last4
 
 
     def add_parser_overlap_deletion(keep_parser: nil, discard_parser: nil)

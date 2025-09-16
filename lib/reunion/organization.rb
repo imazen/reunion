@@ -10,16 +10,52 @@ module Reunion
       $stderr << "Loading books...\n"
       $stderr << "Reparsing...\n" if reparse
       $stderr << "Recomputing...\n" if reparse || recompute
+
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      cache_init_started = t0
+
+      # Initialize or reuse cache
       $org ||= Reunion::OrganizationCache.new(&org_creator)
+      cache_init_done = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
       $org.invalidate_parsing! if reparse
       $org.invalidate_computations! if recompute && !reparse
-      $org.org_computed.ensure_computed! #Easier to have it start work while we're opening our browser
+
+      ensure_started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      if ENV['STACKPROF'] == '1'
+        require 'stackprof'
+        StackProf.run(mode: :cpu, out: ENV['STACKPROF_OUT'] || 'tmp/stackprof-boot.dump', interval: (ENV['STACKPROF_INTERVAL'] || '1000').to_i) do
+          $org.org_computed.ensure_computed! #Easier to have it start work while we're opening our browser
+        end
+      else
+        $org.org_computed.ensure_computed!
+      end
+
+      ensure_done = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
       $stderr << "To speed up: export RUBY_GC_HEAP_INIT_SLOTS=#{(GC.stat[:heap_live_slots]*1.5).to_i}\n"
+
+      total = ensure_done - t0
+      cache_init = cache_init_done - cache_init_started
+      ensure_time = ensure_done - ensure_started
+      $stderr << format("Boot timings: total=%.3fs, cache_init=%.3fs, ensure_computed=%.3fs (gc_live=%d)\n",
+                        total, cache_init, ensure_time, GC.stat[:heap_live_slots])
+
       $stderr << "Books loaded\n"
      
       #$stderr << GC.stat
     end 
 
+    def bank_file_tags
+      @bank_file_tags ||= {}
+      bank_accounts.each do |a|
+        a.file_tags.each do |tag|
+          @bank_file_tags[tag.downcase.to_sym] = a
+        end
+      end
+      @bank_file_tags
+    end 
 
 
     def web_app_title
